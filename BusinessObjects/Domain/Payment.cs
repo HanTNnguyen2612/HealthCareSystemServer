@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace BusinessObjects;
+namespace BusinessObjects.Domain;
 
 public partial class Payment
 {
