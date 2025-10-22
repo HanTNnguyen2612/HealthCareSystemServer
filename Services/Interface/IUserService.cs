@@ -10,5 +10,6 @@ namespace Services.Interface
     public interface IUserService
     {
         Task<User?> GetUserByEmail(string email);
+        Task<User?> CreateUserAsync(User user);
     }
 }

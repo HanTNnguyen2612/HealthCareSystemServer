@@ -22,5 +22,10 @@ namespace Services.Services
         {
             return await _repository.LoginAsync(request);
         }
+
+        public async Task<RegisterResponse?> RegisterAsync(RegisterRequest request)
+        {
+            return await _repository.RegisterAsync(request);
+        }
     }
 }

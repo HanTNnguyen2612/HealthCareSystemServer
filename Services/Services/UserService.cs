@@ -18,6 +18,11 @@ namespace Services.Services
             _repository = repository;
         }
 
+        public async Task<User?> CreateUserAsync(User user)
+        {
+            return await _repository.CreateUserAsync(user);
+        }
+
         public async Task<User?> GetUserByEmail(string email)
         {
             return await _repository.GetUserByEmail(email);

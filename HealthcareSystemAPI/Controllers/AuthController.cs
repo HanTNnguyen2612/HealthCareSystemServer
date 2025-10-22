@@ -1,4 +1,5 @@
 ﻿using BusinessObjects.DataTransferObjects.AuthDTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Services.Interface;
@@ -33,6 +34,30 @@ namespace HealthcareSystemAPI.Controllers
             }
 
             return Ok(result);
+        }
+
+        [HttpPost("register")]
+        public async Task<ActionResult<RegisterResponse>> Register([FromBody] RegisterRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var result = await _service.RegisterAsync(request);
+
+            if (result == null)
+            {
+                return BadRequest(new { message = "Email already exists or registration failed" });
+            }
+
+            return Ok(result);
+        }
+
+        [HttpPost("logout")]
+        public IActionResult Logout()
+        {
+            return Ok(new { Success = true, Message = "Logout Successfully!!!" });
         }
     }
 }
