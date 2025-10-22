@@ -6,6 +6,7 @@ using Repositories.Interface;
 using Repositories.Repositories;
 using Services.Interface;
 using Services.Services;
+using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -44,7 +45,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
             ValidAudience = builder.Configuration["JwtSettings:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecretKey"]!))
+                Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecretKey"]!)),
+            NameClaimType = ClaimTypes.NameIdentifier,
+            RoleClaimType = ClaimTypes.Role
         };
     });
 

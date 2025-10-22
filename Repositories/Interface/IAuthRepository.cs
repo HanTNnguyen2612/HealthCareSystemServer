@@ -10,5 +10,6 @@ namespace Repositories.Interface
     public interface IAuthRepository
     {
         Task<LoginResponse?> LoginAsync(LoginRequest request);
+        Task<RegisterResponse?> RegisterAsync(RegisterRequest request);
     }
 }

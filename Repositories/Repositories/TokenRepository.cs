@@ -44,7 +44,7 @@ namespace Repositories.Repositories
                 issuer: issuer,
                 audience: audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(24),
+                expires: DateTime.UtcNow.AddMinutes(15),
                 signingCredentials: credentials
             );
 

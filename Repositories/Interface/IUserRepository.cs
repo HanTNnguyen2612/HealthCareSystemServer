@@ -10,5 +10,6 @@ namespace Repositories.Interface
     public interface IUserRepository
     {
         Task<User?> GetUserByEmail(string email);
+        Task<User?> CreateUserAsync(User user);
     }
 }

@@ -1,4 +1,5 @@
 ﻿using BusinessObjects.DataTransferObjects.AuthDTOs;
+using BusinessObjects.Domain;
 using DataAccessObjects.DAO;
 using Repositories.Interface;
 using System;
@@ -21,15 +22,15 @@ namespace Repositories.Repositories
         {
             // Tìm user theo email
             var user = await UserDAO.GetUserByEmail(request.Email);
+
             if (user == null)
             {
-                return null; // User không tồn tại
+                return null; 
             }
 
-            // Kiểm tra password (trong thực tế nên hash password)
             if (user.Password != request.Password)
             {
-                return null; // Password sai
+                return null;
             }
 
             // Tạo JWT token
@@ -41,7 +42,46 @@ namespace Repositories.Repositories
                 Email = user.Email,
                 Role = user.Role,
                 Token = token,
-                ExpiresAt = DateTime.UtcNow.AddHours(24) // Token hết hạn sau 24 giờ
+                ExpiresAt = DateTime.UtcNow.AddMinutes(15)
+            };
+        }
+
+        public async Task<RegisterResponse?> RegisterAsync(RegisterRequest request)
+        {
+            // Kiểm tra email đã tồn tại chưa
+            var existingUser = await UserDAO.GetUserByEmail(request.Email);
+            if (existingUser != null)
+            {
+                return null; // Email đã tồn tại
+            }
+
+            // Tạo user mới
+            var newUser = new User
+            {
+                Email = request.Email,
+                Password = request.Password, 
+                FullName = request.FullName,
+                PhoneNumber = request.PhoneNumber,
+                Role = request.Role ?? "Patient",
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true
+            };
+
+            var createdUser = await UserDAO.CreateUserAsync(newUser);
+            if (createdUser == null)
+            {
+                return null; 
+            }
+
+            return new RegisterResponse
+            {
+                UserId = createdUser.UserId,
+                Email = createdUser.Email,
+                FullName = createdUser.FullName,
+                Role = createdUser.Role,
+                PhoneNumber = createdUser.PhoneNumber,
+                CreatedAt = createdUser.CreatedAt ?? DateTime.UtcNow,
+                Message = "User registered successfully"
             };
         }
     }
