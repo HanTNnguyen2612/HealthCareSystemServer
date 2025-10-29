@@ -43,6 +43,7 @@ namespace HealthcareSystemAPI.Controllers
             {
                 return BadRequest(ModelState);
             }
+            Console.WriteLine("Google login successful for email: " + request.IdToken);
 
             var result = await _service.LoginGoogleAsync(request);
 
@@ -50,7 +51,7 @@ namespace HealthcareSystemAPI.Controllers
             {
                 return Unauthorized(new { message = "Invalid email" });
             }
-
+            
             return Ok(result);
         }
 
