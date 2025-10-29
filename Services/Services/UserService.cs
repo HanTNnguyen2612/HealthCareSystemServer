@@ -1,4 +1,5 @@
-﻿using BusinessObjects.Domain;
+﻿using BusinessObjects.DataTransferObjects.UserDTOs;
+using BusinessObjects.Domain;
 using Repositories.Interface;
 using Services.Interface;
 using System;
@@ -18,6 +19,16 @@ namespace Services.Services
             _repository = repository;
         }
 
+        public async Task<bool> BanOrUnBanUserAsync(string email)
+        {
+            return await _repository.BanOrUnBanUserAsync(email);
+        }
+
+        public async Task<bool> ChangePasswordAsync(string email, ChangePasswordRequest request)
+        {
+            return await _repository.ChangePasswordAsync(email, request);
+        }
+
         public async Task<User?> CreateUserAsync(User user)
         {
             return await _repository.CreateUserAsync(user);
@@ -26,6 +37,11 @@ namespace Services.Services
         public async Task<User?> GetUserByEmail(string email)
         {
             return await _repository.GetUserByEmail(email);
+        }
+
+        public async Task<User?> UpdateUserAsync(string email, UserUpdateRequest request)
+        {            
+            return await _repository.UpdateUserAsync(email, request);
         }
     }
 }
