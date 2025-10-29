@@ -36,6 +36,25 @@ namespace HealthcareSystemAPI.Controllers
             return Ok(result);
         }
 
+        [HttpPost("google")]
+        public async Task<ActionResult<LoginResponse>> LoginGoogle([FromBody] LoginGoogle request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            Console.WriteLine("Google login successful for email: " + request.IdToken);
+
+            var result = await _service.LoginGoogleAsync(request);
+
+            if (result == null)
+            {
+                return Unauthorized(new { message = "Invalid email" });
+            }
+            
+            return Ok(result);
+        }
+
         [HttpPost("register")]
         public async Task<ActionResult<RegisterResponse>> Register([FromBody] RegisterRequest request)
         {

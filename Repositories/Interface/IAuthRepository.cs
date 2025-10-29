@@ -11,5 +11,6 @@ namespace Repositories.Interface
     {
         Task<LoginResponse?> LoginAsync(LoginRequest request);
         Task<RegisterResponse?> RegisterAsync(RegisterRequest request);
+        Task<LoginResponse?> LoginGoogleAsync(LoginGoogle request);
     }
 }
