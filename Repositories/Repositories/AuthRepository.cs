@@ -1,6 +1,7 @@
 ﻿using BusinessObjects.DataTransferObjects.AuthDTOs;
 using BusinessObjects.Domain;
 using DataAccessObjects.DAO;
+using Google.Apis.Auth;
 using Repositories.Interface;
 using System;
 using System.Collections.Generic;
@@ -14,6 +15,7 @@ namespace Repositories.Repositories
     {
         private readonly ITokenRepository _tokenRepository;
 
+        private readonly string _googleClientId = "YOUR_GOOGLE_CLIENT_ID";
         public AuthRepository(ITokenRepository tokenRepository)
         {
             _tokenRepository = tokenRepository;
@@ -44,6 +46,49 @@ namespace Repositories.Repositories
                 Token = token,
                 ExpiresAt = DateTime.UtcNow.AddMinutes(15)
             };
+        }
+
+        public async Task<LoginResponse?> LoginGoogleAsync(LoginGoogle request)
+        {
+            try
+            {
+                //  Xác minh idToken với Google
+                var settings = new GoogleJsonWebSignature.ValidationSettings
+                {
+                    Audience = new List<string> { _googleClientId }
+                };
+
+                var payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken, settings);
+
+                //  Lấy email từ token
+                var email = payload.Email;
+                Console.WriteLine($"[Google Login] Email: {email}");
+
+                // Kiểm tra
+                var user = await UserDAO.GetUserByEmail(email);
+                if (user == null)
+                {
+                    Console.WriteLine("[Google Login] Email chưa tồn tại trong hệ thống.");
+                    return null;
+                }
+
+                //Nếu tồn tại → sinh JWT token bình thường
+                var token = _tokenRepository.GenerateJwtToken(user);
+
+                return new LoginResponse
+                {
+                    UserId = user.UserId,
+                    Email = user.Email,
+                    Role = user.Role,
+                    Token = token,
+                    ExpiresAt = DateTime.UtcNow.AddMinutes(15)
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] LoginGoogleAsync: {ex.Message}");
+                return null;
+            }
         }
 
         public async Task<RegisterResponse?> RegisterAsync(RegisterRequest request)

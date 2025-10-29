@@ -27,5 +27,9 @@ namespace Services.Services
         {
             return await _repository.RegisterAsync(request);
         }
+        public async Task<LoginResponse?> LoginGoogleAsync(LoginGoogle request)
+        {
+            return await _repository.LoginGoogleAsync(request);
+        }
     }
 }
