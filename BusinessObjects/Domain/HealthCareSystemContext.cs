@@ -58,7 +58,8 @@ public partial class HealthCareSystemContext : DbContext
         IConfiguration configuration = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("appsettings.json", true, true).Build();
-        return configuration["ConnectionStrings:DefaultConnectionString"];
+        return configuration["ConnectionStrings:DefaultConnectionString"]
+                ?? "Data Source=localhost;Database=HealthCareSystem;User Id=sa;Password=1234567890;TrustServerCertificate=true;Trusted_Connection=SSPI;Encrypt=false;";
     }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
