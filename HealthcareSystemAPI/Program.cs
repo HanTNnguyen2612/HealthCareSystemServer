@@ -45,10 +45,12 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IPatientService, PatientService>();
 builder.Services.AddScoped<IDoctorService, DoctorService>();
+builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 
 // ------------------ DAO DI ----------------------
 builder.Services.AddScoped<PatientDAO>();
 builder.Services.AddScoped<DoctorDAO>();
+builder.Services.AddScoped<AppointmentDAO>();
 
 // JWT Configuration
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
