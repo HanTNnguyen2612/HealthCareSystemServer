@@ -1,6 +1,7 @@
 using BusinessObjects.Domain;
 using DataAccessObjects.DAO;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Repositories.Interface;
@@ -9,6 +10,7 @@ using Services.Interface;
 using Services.Services;
 using System.Security.Claims;
 using System.Text;
+using HealthcareSystemAPI.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,7 +20,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowLocalhost",
         policy =>
         {
-            policy.WithOrigins("https://localhost:7002") 
+            policy.WithOrigins("https://localhost:7002", "http://localhost:7002") 
                   .AllowAnyHeader()
                   .AllowAnyMethod()
                   .AllowCredentials();
@@ -38,6 +40,8 @@ builder.Services.AddScoped<ITokenRepository, TokenRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IPatientRepository, PatientRepository>();
 builder.Services.AddScoped<IDoctorRepository, DoctorRepository>();
+builder.Services.AddScoped<IConversationRepository, ConversationRepository>();
+builder.Services.AddScoped<IMessageRepository, MessageRepository>();
 
 // ------------------ Service DI ----------------------
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -46,11 +50,18 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IPatientService, PatientService>();
 builder.Services.AddScoped<IDoctorService, DoctorService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
+builder.Services.AddScoped<IConversationService, ConversationService>();
+builder.Services.AddScoped<IMessageService, MessageService>();
 
 // ------------------ DAO DI ----------------------
 builder.Services.AddScoped<PatientDAO>();
 builder.Services.AddScoped<DoctorDAO>();
 builder.Services.AddScoped<AppointmentDAO>();
+builder.Services.AddScoped<ConversationDAO>();
+builder.Services.AddScoped<MessageDAO>();
+
+// ------------------ SignalR ----------------------
+builder.Services.AddSignalR();
 
 // JWT Configuration
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -68,6 +79,24 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecretKey"]!)),
             NameClaimType = ClaimTypes.NameIdentifier,
             RoleClaimType = ClaimTypes.Role
+        };
+
+        // Allow JWT via query string for WebSocket connections to hubs
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var path = context.HttpContext.Request.Path;
+                if (path.StartsWithSegments("/hubs/chat"))
+                {
+                    var accessToken = context.Request.Query["access_token"];
+                    if (!string.IsNullOrEmpty(accessToken))
+                    {
+                        context.Token = accessToken;
+                    }
+                }
+                return Task.CompletedTask;
+            }
         };
     });
 
@@ -88,5 +117,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<ChatHub>("/hubs/chat");
 
 app.Run();
