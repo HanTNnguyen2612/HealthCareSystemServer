@@ -1,0 +1,217 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+    Layout = "_LayoutUser";
+    ViewData["Title"] = "AI Assistant";
+}
+<!-- Main Content -->
+<div class="main-content">
+    <!-- Header -->
+    <header class="header">
+        <h1 class="header-title">AI Health Assistant</h1>
+        <div class="search-container">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" class="search-input" placeholder="Search health topics..." id="searchInput">
+        </div>
+        <div class="header-actions">
+            <button class="notification-btn">
+                <i class="fas fa-bell"></i>
+                <span class="notification-badge">3</span>
+            </button>
+            <div class="user-profile" onclick="window.location.href='profile.html'">
+                <img src="/placeholder.svg?height=32&width=32" alt="User" class="user-avatar">
+                <div class="user-info">
+                    <h6 id="userName">John Doe</h6>
+                    <p>Patient</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- AI Chat Layout -->
+    <div class="content">
+        <div class="ai-chat-layout">
+            <!-- AI Chat Panel -->
+            <div class="dashboard-card ai-chat-panel">
+                <div class="ai-chat-container">
+                    <!-- AI Chat Header -->
+                    <div class="ai-chat-header">
+                        <div class="ai-assistant-info">
+                            <div class="ai-avatar">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div class="ai-details">
+                                <h6>HealthCare AI Assistant</h6>
+                                <p>Your personal health companion</p>
+                            </div>
+                        </div>
+                        <div class="ai-status">
+                            <div class="status-indicator online"></div>
+                            <span class="status-text">Online</span>
+                        </div>
+                    </div>
+
+                    <!-- AI Chat Messages -->
+                    <div class="ai-chat-messages" id="aiChatMessages">
+                        <div class="message ai-message">
+                            <div class="message-avatar">
+                                <div class="ai-avatar-small">
+                                    <i class="fas fa-robot"></i>
+                                </div>
+                            </div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-sender">AI Assistant</span>
+                                    <span class="message-time">Now</span>
+                                </div>
+                                <div class="message-text">
+                                    Hello! I'm your AI health assistant. I can help you with:
+                                    <ul>
+                                        <li>General health questions</li>
+                                        <li>Symptom assessment</li>
+                                        <li>Medication information</li>
+                                        <li>Wellness tips</li>
+                                        <li>Appointment scheduling</li>
+                                    </ul>
+                                    How can I assist you today?
+                                </div>
+                                <div class="ai-disclaimer">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    This AI assistant provides general information only and should not replace professional medical advice.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI Chat Input -->
+                    <div class="ai-chat-input-container">
+                        <form class="ai-chat-input-form" onsubmit="sendAIMessage(event)">
+                            <div class="ai-chat-input-wrapper">
+                                <input type="text" class="ai-chat-input" id="aiMessageInput" placeholder="Ask me anything about your health...">
+                                <button type="button" class="ai-voice-btn" onclick="startVoiceInput()">
+                                    <i class="fas fa-microphone"></i>
+                                </button>
+                            </div>
+                            <button type="submit" class="ai-send-btn">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Questions & Features Panel -->
+            <div class="quick-questions-panel">
+                <!-- Quick Questions -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h5 class="card-title">Quick Questions</h5>
+                    </div>
+                    <div class="card-content">
+                        <div class="quick-questions-grid">
+                            <button class="quick-question-btn" onclick="askQuickQuestion('What are the symptoms of flu?')">
+                                <div class="question-icon">
+                                    <i class="fas fa-thermometer-half"></i>
+                                </div>
+                                <span>Flu Symptoms</span>
+                            </button>
+                            <button class="quick-question-btn" onclick="askQuickQuestion('How to manage high blood pressure?')">
+                                <div class="question-icon">
+                                    <i class="fas fa-heart"></i>
+                                </div>
+                                <span>Blood Pressure</span>
+                            </button>
+                            <button class="quick-question-btn" onclick="askQuickQuestion('What foods are good for diabetes?')">
+                                <div class="question-icon">
+                                    <i class="fas fa-apple-alt"></i>
+                                </div>
+                                <span>Diabetes Diet</span>
+                            </button>
+                            <button class="quick-question-btn" onclick="askQuickQuestion('How much water should I drink daily?')">
+                                <div class="question-icon">
+                                    <i class="fas fa-tint"></i>
+                                </div>
+                                <span>Daily Water Intake</span>
+                            </button>
+                            <button class="quick-question-btn" onclick="askQuickQuestion('What are healthy sleep habits?')">
+                                <div class="question-icon">
+                                    <i class="fas fa-bed"></i>
+                                </div>
+                                <span>Sleep Health</span>
+                            </button>
+                            <button class="quick-question-btn" onclick="askQuickQuestion('How to reduce stress naturally?')">
+                                <div class="question-icon">
+                                    <i class="fas fa-leaf"></i>
+                                </div>
+                                <span>Stress Management</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Features -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h5 class="card-title">AI Features</h5>
+                    </div>
+                    <div class="card-content">
+                        <div class="ai-features-list">
+                            <div class="ai-feature-item">
+                                <div class="feature-icon">
+                                    <i class="fas fa-stethoscope"></i>
+                                </div>
+                                <div class="feature-content">
+                                    <h6>Symptom Checker</h6>
+                                    <p>Describe your symptoms for preliminary assessment</p>
+                                </div>
+                            </div>
+                            <div class="ai-feature-item">
+                                <div class="feature-icon">
+                                    <i class="fas fa-pills"></i>
+                                </div>
+                                <div class="feature-content">
+                                    <h6>Medication Info</h6>
+                                    <p>Get information about medications and interactions</p>
+                                </div>
+                            </div>
+                            <div class="ai-feature-item">
+                                <div class="feature-icon">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <div class="feature-content">
+                                    <h6>Health Tracking</h6>
+                                    <p>Monitor your health metrics and trends</p>
+                                </div>
+                            </div>
+                            <div class="ai-feature-item">
+                                <div class="feature-icon">
+                                    <i class="fas fa-calendar-alt"></i>
+                                </div>
+                                <div class="feature-content">
+                                    <h6>Smart Scheduling</h6>
+                                    <p>AI-powered appointment recommendations</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recommended Doctors -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h5 class="card-title">Recommended Doctors</h5>
+                        <a href="doctors-modern.html" class="view-all-link">View All</a>
+                    </div>
+                    <div class="card-content">
+                        <div class="recommended-doctors-grid" id="recommendedDoctors">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/js/user/ai-chat.js"></script>

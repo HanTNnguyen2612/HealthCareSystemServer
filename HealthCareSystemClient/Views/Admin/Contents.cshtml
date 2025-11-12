@@ -1,0 +1,228 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+    Layout = "_LayoutAdmin";
+    ViewData["Title"] = "Content Management";
+}
+<!-- Main Content -->
+<div class="main-content">
+    <!-- Header -->
+    <header class="header">
+        <h1 class="header-title">Content Management</h1>
+        <div class="search-container">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" class="search-input" placeholder="Search articles..." id="searchInput">
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-primary" onclick="showCreateArticle()">
+                <i class="fas fa-plus"></i>
+                Create Article
+            </button>
+            <button class="notification-btn">
+                <i class="fas fa-bell"></i>
+                <span class="notification-badge">5</span>
+            </button>
+            <div class="user-profile">
+                <img src="/placeholder.svg?height=32&width=32" alt="Admin" class="user-avatar">
+                <div class="user-info">
+                    <h6>Admin User</h6>
+                    <p>Administrator</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Content -->
+    <div class="content">
+        <!-- Article Editor View -->
+        <div id="articleEditor" style="display: none;">
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h5 class="card-title" id="editorTitle">Create New Article</h5>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-secondary" onclick="hideArticleEditor()">
+                            <i class="fas fa-times"></i>
+                            Cancel
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="saveAsDraft()">
+                            <i class="fas fa-save"></i>
+                            Save Draft
+                        </button>
+                        <button class="btn btn-primary" onclick="publishArticle()">
+                            <i class="fas fa-paper-plane"></i>
+                            Publish
+                        </button>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <form id="articleForm">
+                        <input type="hidden" id="articleId">
+                        <div class="row mb-3">
+                            <div class="col-md-8">
+                                <label class="form-label">Title</label>
+                                <input type="text" class="form-control" id="articleTitle" placeholder="Enter article title" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Category</label>
+                                <select class="form-select" id="articleCategory" required>
+                                    <option value="">Select Category</option>
+                                    <option value="health-tips">Health Tips</option>
+                                    <option value="medical-news">Medical News</option>
+                                    <option value="wellness">Wellness</option>
+                                    <option value="nutrition">Nutrition</option>
+                                    <option value="mental-health">Mental Health</option>
+                                    <option value="fitness">Fitness</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Featured Image</label>
+                            <div class="image-upload-area" id="imageUploadArea">
+                                <input type="file" id="articleImage" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                                <div class="upload-placeholder" onclick="document.getElementById('articleImage').click()">
+                                    <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted">Click to upload featured image</p>
+                                    <small class="text-muted">Supports: JPG, PNG, GIF (Max: 5MB)</small>
+                                </div>
+                                <div class="image-preview" id="imagePreview" style="display: none;">
+                                    <img id="previewImg" src="/placeholder.svg" alt="Preview" class="img-fluid rounded">
+                                    <button type="button" class="btn btn-sm btn-danger mt-2" onclick="removeImage()">
+                                        <i class="fas fa-trash"></i>
+                                        Remove Image
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Summary</label>
+                            <textarea class="form-control" id="articleSummary" rows="3" placeholder="Brief summary of the article"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Content</label>
+                            <div id="editor" style="height: 400px;"></div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Tags</label>
+                                <input type="text" class="form-control" id="articleTags" placeholder="Enter tags separated by commas">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Author</label>
+                                <input type="text" class="form-control" id="articleAuthor" value="Admin User" readonly>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Status</label>
+                                <select class="form-select" id="articleStatus">
+                                    <option value="draft">Draft</option>
+                                    <option value="published">Published</option>
+                                    <option value="archived">Archived</option>
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Articles List View -->
+        <div id="articlesListView">
+            <!-- Filters -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h5 class="card-title">Filters</h5>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="clearContentFilters()">
+                        <i class="fas fa-times"></i>
+                        Clear All
+                    </button>
+                </div>
+                <div class="card-content">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">Category</label>
+                            <select class="form-select" id="categoryFilter" onchange="applyContentFilters()">
+                                <option value="">All Categories</option>
+                                <option value="health-tips">Health Tips</option>
+                                <option value="medical-news">Medical News</option>
+                                <option value="wellness">Wellness</option>
+                                <option value="nutrition">Nutrition</option>
+                                <option value="mental-health">Mental Health</option>
+                                <option value="fitness">Fitness</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" id="statusFilter" onchange="applyContentFilters()">
+                                <option value="">All Statuses</option>
+                                <option value="published">Published</option>
+                                <option value="draft">Draft</option>
+                                <option value="archived">Archived</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Author</label>
+                            <select class="form-select" id="authorFilter" onchange="applyContentFilters()">
+                                <option value="">All Authors</option>
+                                <option value="admin">Admin User</option>
+                                <option value="editor">Content Editor</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Date Range</label>
+                            <select class="form-select" id="dateRangeFilter" onchange="applyContentFilters()">
+                                <option value="">All Time</option>
+                                <option value="today">Today</option>
+                                <option value="week">This Week</option>
+                                <option value="month">This Month</option>
+                                <option value="year">This Year</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Articles Grid -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h5 class="card-title">Articles</h5>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-primary" onclick="exportArticles('csv')">
+                            <i class="fas fa-download"></i>
+                            Export CSV
+                        </button>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-sm btn-outline-secondary active" onclick="toggleView('grid')">
+                                <i class="fas fa-th"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="toggleView('list')">
+                                <i class="fas fa-list"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div id="articlesGrid" class="articles-grid">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                    <div id="articlesList" class="articles-list" style="display: none;">
+                        <!-- Populated by JavaScript -->
+                    </div>
+
+                    <!-- Pagination -->
+                    <nav aria-label="Articles pagination">
+                        <ul class="pagination justify-content-center" id="articlesPagination">
+                            <!-- Populated by JavaScript -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+<script src="~/js/admin/admin-content.js"></script>
