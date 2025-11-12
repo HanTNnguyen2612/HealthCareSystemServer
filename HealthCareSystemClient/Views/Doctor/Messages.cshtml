@@ -1,0 +1,108 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+    Layout = "_layoutDoctor";
+    ViewData["Title"] = "Messages";
+}
+
+<!-- Main Content -->
+<div class="main-content">
+    <!-- Header -->
+    <header class="header">
+        <h1 class="header-title">Messages</h1>
+        <div class="search-container">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" class="search-input" placeholder="Search conversations..." id="searchInput">
+        </div>
+        <div class="header-actions">
+            <button class="notification-btn">
+                <i class="fas fa-bell"></i>
+                <span class="notification-badge">5</span>
+            </button>
+            <div class="user-profile" onclick="window.location.href='doctor-profile.html'">
+                <img src="/placeholder.svg?height=32&width=32" alt="Doctor" class="user-avatar">
+                <div class="user-info">
+                    <h6 id="doctorName">Dr. Sarah Johnson</h6>
+                    <p>Cardiologist</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Messages Layout -->
+    <div class="content">
+        <div class="messages-layout">
+            <!-- Conversations Panel -->
+            <div class="dashboard-card conversations-panel">
+                <div class="card-header">
+                    <h5 class="card-title">Patient Conversations</h5>
+                    <button class="btn btn-sm btn-primary" onclick="startNewConversation()">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                <div class="conversations-list" id="conversationsList">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Chat Panel -->
+            <div class="dashboard-card chat-panel">
+                <div class="chat-container" id="chatContainer">
+                    <!-- Chat Header -->
+                    <div class="chat-header" id="chatHeader" style="display: none;">
+                        <div class="chat-doctor-info">
+                            <img src="/placeholder.svg?height=48&width=48" alt="Patient" class="chat-avatar" id="chatAvatar">
+                            <div class="chat-doctor-details">
+                                <h6 id="chatPatientName">John Doe</h6>
+                                <p id="chatPatientInfo">Age 45 • Hypertension</p>
+                            </div>
+                        </div>
+                        <div class="chat-actions">
+                            <button class="chat-action-btn" onclick="startVideoCall()" title="Video Call">
+                                <i class="fas fa-video"></i>
+                            </button>
+                            <button class="chat-action-btn" onclick="startVoiceCall()" title="Voice Call">
+                                <i class="fas fa-phone"></i>
+                            </button>
+                            <button class="chat-action-btn" onclick="viewPatientProfile()" title="View Profile">
+                                <i class="fas fa-user"></i>
+                            </button>
+                            <button class="chat-action-btn" onclick="scheduleAppointment()" title="Schedule Appointment">
+                                <i class="fas fa-calendar-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Chat Messages -->
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="empty-chat">
+                            <div class="empty-chat-icon">
+                                <i class="fas fa-comments"></i>
+                            </div>
+                            <h5>Select a conversation</h5>
+                            <p>Choose a patient from the list to start messaging</p>
+                        </div>
+                    </div>
+
+                    <!-- Chat Input -->
+                    <div class="chat-input-container" id="chatInputContainer" style="display: none;">
+                        <form class="chat-input-form" onsubmit="sendMessage(event)">
+                            <div class="chat-input-wrapper">
+                                <input type="text" class="chat-input" id="messageInput" placeholder="Type your message...">
+                                <button type="button" class="attachment-btn" onclick="attachFile()">
+                                    <i class="fas fa-paperclip"></i>
+                                </button>
+                            </div>
+                            <button type="submit" class="send-btn">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/js/doctor/messages.js"></script>
