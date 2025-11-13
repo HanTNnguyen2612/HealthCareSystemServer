@@ -1,6 +1,3 @@
-using HealthCareSystemClient.Models;
-using Microsoft.EntityFrameworkCore;
-
 namespace HealthCareSystemClient
 {
     public class Program
@@ -9,11 +6,21 @@ namespace HealthCareSystemClient
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            builder.Services.AddHttpClient("healthcaresystemapi", c =>
+            {
+                c.BaseAddress = new Uri("https://localhost:7293");
+            });
+
             // Add services to the container.
             builder.Services.AddControllersWithViews();
 
-
-            builder.Services.AddSession();
+            builder.Services.AddDistributedMemoryCache();
+            builder.Services.AddSession(options =>
+            {
+                options.Cookie.HttpOnly = true;
+                options.Cookie.IsEssential = true;
+                options.IdleTimeout = TimeSpan.FromMinutes(30);
+            });
             var app = builder.Build();
             // Configure the HTTP request pipeline.
             if (!app.Environment.IsDevelopment())
@@ -27,6 +34,7 @@ namespace HealthCareSystemClient
             app.UseStaticFiles();
 
             app.UseRouting();
+            app.UseSession();
 
             app.UseAuthorization();
 
