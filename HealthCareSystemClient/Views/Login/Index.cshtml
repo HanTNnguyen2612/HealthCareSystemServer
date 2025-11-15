@@ -44,6 +44,12 @@
                     </div>
                     <button type="submit" class="btn btn-primary btn-lg w-100 mb-4">Sign In</button>
                 </form>
+                <div id="googleLoginDiv" class="mb-4 text-center"></div>
+
+                <form id="googleForm" method="post" asp-action="GoogleLogin">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="GoogleToken" name="googleToken" />
+                </form>
                 <div class="text-center">
                     <p class="text-secondary mb-3">Don't have an account? <a asp-controller="Register" asp-action="Index" class="text-primary text-decoration-none fw-semibold">Create one</a></p>
                     <a asp-action="Index" asp-controller="Home" class="text-secondary text-decoration-none">← Back to Home</a>
@@ -55,4 +61,24 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <script>
+        window.onload = function () {
+            google.accounts.id.initialize({
+                clien'xxxxxxxxxxxxxxxxxxxxxxxxxxxxx't_id: "809599261625-93g'xxxxxxxxxxxxxxxxxxxxxxxxxxxxx'hqc42jnj7515a4hk6vtlatqfde2be.apps.'xxxxxxxxxxxxxxxxxxxxxxxxxxxxx'googleusercontent.com",
+                callback: handleCredentialResponse
+            });
+
+            google.accounts.id.renderButton(
+                document.getElementById("googleLoginDiv"),
+                { theme: "outline", size: "large", text: "signin_with" }
+            );
+        };
+
+        function handleCredentialResponse(response) {
+            document.getElementById("GoogleToken").value = response.credential;
+            document.getElementById("googleForm").submit();
+        }
+    </script>
 }

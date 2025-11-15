@@ -11,6 +11,8 @@ using Services.Services;
 using System.Security.Claims;
 using System.Text;
 using HealthcareSystemAPI.Hubs;
+using BusinessObjects.DataTransferObjects;
+using BusinessObjects.DataTransferObjects.Googles;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +32,8 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.Configure<GoogleSettings>(builder.Configuration.GetSection("GoogleAuth"));
 
 builder.Services.AddDbContext<HealthCareSystemContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnectionString")));
