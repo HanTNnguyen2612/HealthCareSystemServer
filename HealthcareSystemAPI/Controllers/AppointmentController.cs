@@ -1,6 +1,7 @@
 ﻿using BusinessObjects.DataTransferObjects.AppointmentDTOs;
 using Microsoft.AspNetCore.Mvc;
 using Services.Interface;
+using System.Security.Claims;
 
 namespace HealthcareSystemAPI.Controllers
 {
@@ -81,5 +82,49 @@ namespace HealthcareSystemAPI.Controllers
 
             return NoContent();
         }
+
+
+        [HttpPost("Pending")]
+        public async Task<IActionResult> GetListPendingPatientId()
+        {
+            var userId =  int.Parse(User.FindFirst("UserId").Value);
+            var result = await _appointmentService.GetStatusPatientId("Pending", userId);
+            if (result == null) return NotFound(new { message = "Appointment not found" });
+            return Ok(result);
+        }
+
+        [HttpPost("Confirmed")]
+        public async Task<IActionResult> GetListConfirmedPatientId()
+        {
+            var userId = int.Parse(User.FindFirst("UserId").Value);
+            var result = await _appointmentService.GetStatusPatientId("Confirmed", userId);
+            if (result == null) return NotFound(new { message = "Appointment not found" });
+            return Ok(result);
+        }
+        [HttpPost("Cancelled")]
+        public async Task<IActionResult> GetListCancelledPatientId()
+        {
+            var userId = int.Parse(User.FindFirst("UserId").Value);
+            var result = await _appointmentService.GetStatusPatientId("Cancelled", userId);
+            if (result == null) return NotFound(new { message = "Appointment not found" });
+            return Ok(result);
+        }
+
+        [HttpGet("patient/{id}")]
+        public async Task<IActionResult> GetAllPatientId(int id)
+        {
+            var result = await _appointmentService.GetByUserId(id);
+            if (result == null) return NotFound(new { message = "Appointment not found" });
+            return Ok(result);
+        }
+
+        [HttpGet("specialty")]
+        public async Task<IActionResult> GetAllspecialty()
+        {
+            var result = await _appointmentService.GetAllSpecialtiesAsync();
+            if (result == null) return NotFound(new { message = "Appointment not found" });
+            return Ok(result);
+        }
     }
+
 }

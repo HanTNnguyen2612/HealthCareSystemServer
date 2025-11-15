@@ -1,9 +1,10 @@
-﻿using System.Net;
-using System.Net.Http.Json;
+﻿using Azure.Core;
 using BusinessObjects.DataTransferObjects.AuthDTOs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using System.Net;
+using System.Net.Http.Json;
 
 namespace HealthCareSystemClient.Controllers
 {
@@ -95,6 +96,65 @@ namespace HealthCareSystemClient.Controllers
             }
 
             return View(request);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> GoogleLogin(string googleToken)
+        {
+            var model = new LoginRequest();
+            if (string.IsNullOrEmpty(googleToken))
+            {
+                ModelState.AddModelError("", "Không nhận được Google Token.");
+                return RedirectToAction(nameof(Index));
+            }
+
+            try
+            {
+                var client = _httpClientFactory.CreateClient("healthcaresystemapi");
+
+                var response = await client.PostAsJsonAsync("api/Auth/google", new
+                {
+                    idToken = googleToken
+                });
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
+
+                    if (loginResponse == null)
+                    {
+                        return RedirectToAction(nameof(Index));
+                    }
+
+                    // Lưu session giống login bằng password
+                    HttpContext.Session.SetInt32("UserId", loginResponse.UserId);
+                    HttpContext.Session.SetString("Email", loginResponse.Email);
+                    HttpContext.Session.SetString("Role", loginResponse.Role ?? "");
+                    HttpContext.Session.SetString("AccessToken", loginResponse.Token);
+                    HttpContext.Session.SetString("TokenExpiry", loginResponse.ExpiresAt.ToString("O"));
+
+                    var role = loginResponse.Role?.Trim().ToLower();
+
+                    return role switch
+                    {
+                        "admin" => RedirectToAction("Index", "Admin"),
+                        "doctor" => RedirectToAction("Index", "Doctor"),
+                        "patient" => RedirectToAction("Index", "User"),
+                        _ => RedirectToAction("Index", "Home")
+                    };
+                }
+                else
+                {
+                    ModelState.AddModelError(string.Empty, "Email không tồn tại trong hệ thống.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi Google Login");
+                ModelState.AddModelError(string.Empty, "Đã xảy ra lỗi hệ thống. Vui lòng thử lại.");
+            }
+            return View("Index", model);
         }
 
         [HttpPost]

@@ -4,6 +4,7 @@ using Services.Interface;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -149,5 +150,121 @@ namespace Services.Services
         {
             return await _appointmentDAO.DeleteAsync(appointmentId);
         }
+
+
+
+        public async Task<List<AppointmentResponse?>> GetByDoctorId(int doctorId)
+        {
+            var results = new List<AppointmentResponse>();
+            var appointments = await _appointmentDAO.GetByDoctorId(doctorId);
+            foreach (var appointment in appointments)
+            {
+                var doctor = await _doctorService.GetDoctorProfileAsync(appointment.DoctorUserId);
+                var patient = await _patientService.GetPatientProfileAsync(appointment.PatientUserId);
+
+                results.Add(new AppointmentResponse
+                {
+                    AppointmentId = appointment.AppointmentId,
+                    DoctorName = doctor.FullName,
+                    PatientName = patient.FullName,
+                    AppointmentDateTime = appointment.AppointmentDateTime,
+                    Notes = appointment.Notes,
+                    CreatedAt = appointment.CreatedAt,
+                    UpdatedAt = appointment.UpdatedAt,
+                    Status = appointment.Status
+                });
+            }
+
+            return results;
+        }
+
+        public async Task<List<AppointmentResponse?>> GetByUserId(int patientId)
+        {
+            var results = new List<AppointmentResponse>();
+            var appointments = await _appointmentDAO.GetByUserId(patientId);
+            foreach (var appointment in appointments)
+            {
+                var doctor = await _doctorService.GetDoctorProfileAsync(appointment.DoctorUserId);
+                var patient = await _patientService.GetPatientProfileAsync(appointment.PatientUserId);
+
+                results.Add(new AppointmentResponse
+                {
+                    AppointmentId = appointment.AppointmentId,
+                    DoctorName = doctor.FullName,
+                    PatientName = patient.FullName,
+                    AppointmentDateTime = appointment.AppointmentDateTime,
+                    Notes = appointment.Notes,
+                    CreatedAt = appointment.CreatedAt,
+                    UpdatedAt = appointment.UpdatedAt,
+                    Status = appointment.Status
+                });
+            }
+
+            return results;
+        }
+
+        public async Task<List<AppointmentResponse?>> GetStatusPatientId(String status , int patientid)
+        {
+            var results = new List<AppointmentResponse>();
+            var appointments = await _appointmentDAO.GetByUserId(patientid);
+            foreach (var appointment in appointments)
+            {
+              if (appointment.Status == status)
+                {
+                    var doctor = await _doctorService.GetDoctorProfileAsync(appointment.DoctorUserId);
+                    var patient = await _patientService.GetPatientProfileAsync(appointment.PatientUserId);
+
+                    results.Add(new AppointmentResponse
+                    {
+                        AppointmentId = appointment.AppointmentId,
+                        DoctorName = doctor.FullName,
+                        PatientName = patient.FullName,
+                        AppointmentDateTime = appointment.AppointmentDateTime,
+                        Notes = appointment.Notes,
+                        CreatedAt = appointment.CreatedAt,
+                        UpdatedAt = appointment.UpdatedAt,
+                        Status = appointment.Status
+                    });
+                }
+            }
+
+            return results;
+        }
+
+        public async Task<List<AppointmentResponse?>> GetStatusDoctorId(String status, int doctorid)
+        {
+            var results = new List<AppointmentResponse>();
+            var appointments = await _appointmentDAO.GetByDoctorId(doctorid);
+            foreach (var appointment in appointments)
+            {
+                if (appointment.Status == status)
+                {
+                    var doctor = await _doctorService.GetDoctorProfileAsync(appointment.DoctorUserId);
+                    var patient = await _patientService.GetPatientProfileAsync(appointment.PatientUserId);
+
+                    results.Add(new AppointmentResponse
+                    {
+                        AppointmentId = appointment.AppointmentId,
+                        DoctorName = doctor.FullName,
+                        PatientName = patient.FullName,
+                        AppointmentDateTime = appointment.AppointmentDateTime,
+                        Notes = appointment.Notes,
+                        CreatedAt = appointment.CreatedAt,
+                        UpdatedAt = appointment.UpdatedAt,
+                        Status = appointment.Status
+                    });
+                }
+            }
+
+            return results;
+        }
+
+
+        public async Task<List<Specialty?>> GetAllSpecialtiesAsync()
+        {
+            return await _appointmentDAO.GetAllSpecialtiesAsync();
+        }
+
+
     }
 }

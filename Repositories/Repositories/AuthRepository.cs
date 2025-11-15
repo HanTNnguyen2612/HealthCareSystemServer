@@ -1,11 +1,14 @@
 ﻿using BusinessObjects.DataTransferObjects.AuthDTOs;
+using BusinessObjects.DataTransferObjects.Googles;
 using BusinessObjects.Domain;
 using DataAccessObjects.DAO;
 using Google.Apis.Auth;
+using Microsoft.Extensions.Options;
 using Repositories.Interface;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -15,11 +18,15 @@ namespace Repositories.Repositories
     {
         private readonly ITokenRepository _tokenRepository;
 
-        private readonly string _googleClientId = "YOUR_GOOGLE_CLIENT_ID";
-        public AuthRepository(ITokenRepository tokenRepository)
+        private readonly string _googleClientId;
+
+        public AuthRepository(IOptions<GoogleSettings> googleSettings , ITokenRepository tokenRepository)
         {
+            _googleClientId = googleSettings.Value.ClientId;
             _tokenRepository = tokenRepository;
         }
+
+
         public async Task<LoginResponse?> LoginAsync(LoginRequest request)
         {
             // Tìm user theo email
@@ -55,7 +62,7 @@ namespace Repositories.Repositories
                 //  Xác minh idToken với Google
                 var settings = new GoogleJsonWebSignature.ValidationSettings
                 {
-                    Audience = new List<string> { _googleClientId }
+                    Audience = new[] { _googleClientId }
                 };
 
                 var payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken, settings);

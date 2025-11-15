@@ -1,35 +1,51 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@using BusinessObjects.DataTransferObjects.AppointmentDTOs
+@model BusinessObjects.DataTransferObjects.AppointmentDTOs.BookAppointmentViewModel
 @{
     Layout = "_LayoutUser";
-    ViewData["Title"] = "Appointments";
+    ViewData["Title"] = "Book Appointment";
 }
 <!-- Main Content -->
 <div class="main-content">
     <!-- Header -->
     <header class="header">
-        <h1 class="header-title">Appointments</h1>
+        <h1 class="header-title">Book Appointment</h1>
+
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @TempData["Success"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @TempData["Error"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
         <div class="search-container">
             <i class="fas fa-search search-icon"></i>
             <input type="text" class="search-input" placeholder="Search appointments..." id="searchInput">
         </div>
         <div class="header-actions">
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#bookAppointmentModal">
-                <i class="fas fa-plus"></i>
+            <button style="height: 55px !important;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#bookAppointmentModal">
+                <i class="fas fa-plus" style="margin-top: 17px !important;"></i>
                 Book Appointment
             </button>
             <button class="notification-btn">
                 <i class="fas fa-bell"></i>
                 <span class="notification-badge">3</span>
             </button>
-            <div class="user-profile" onclick="window.location.href='profile.html'">
-                <img src="/placeholder.svg?height=32&width=32" alt="User" class="user-avatar">
-                <div class="user-info">
-                    <h6 id="userName">John Doe</h6>
-                    <p>Patient</p>
+            <a asp-action="Profile" asp-controller="User" style="text-decoration: none;">
+                <div class="user-profile">
+                    <img src="@(ViewBag.CurrentUser?.AvatarUrl ?? "/images/default-user.png")" alt="User" class="user-avatar">
+                    <div class="user-info">
+                        <h6 id="userName">@(ViewBag.CurrentUser?.FullName ?? "User")</h6>
+                        <p>Patient</p>
+                    </div>
                 </div>
-            </div>
+            </a>
         </div>
     </header>
 
@@ -59,22 +75,165 @@
                 <div class="tab-content" id="appointmentTabContent">
                     <!-- Upcoming Appointments -->
                     <div class="tab-pane fade show active" id="upcoming" role="tabpanel">
-                        <div class="appointments-list" id="upcomingAppointments">
-                            <!-- Populated by JavaScript -->
+                        <div class="appointments-list">
+                            @{
+                                var upcomingAppointments = ViewBag.UpcomingAppointments as List<AppointmentViewModel>;
+                            }
+                            @if (upcomingAppointments != null && upcomingAppointments.Any())
+                            {
+                                @foreach (var appointment in upcomingAppointments)
+                                {
+                                    <div class="appointment-card">
+                                        <div class="appointment-header">
+                                            <div class="appointment-doctor">
+                                                <img src="@(string.IsNullOrEmpty(appointment.DoctorAvatarUrl) ? "/images/default-doctor.png" : appointment.DoctorAvatarUrl)" alt="Doctor" class="doctor-avatar-small">
+                                                <div class="doctor-info">
+                                                    <h6>@appointment.DoctorName</h6>
+                                                    <p>@appointment.SpecialtyName</p>
+                                                </div>
+                                            </div>
+                                            <div class="appointment-status">
+                                                <span class="status-badge status-@appointment.Status.ToLower()">Pending</span>
+                                            </div>
+                                        </div>
+                                        <div class="appointment-details">
+                                            <div class="appointment-time">
+                                                <i class="fas fa-calendar-alt"></i>
+                                                @appointment.AppointmentDateTime.ToString("dd/MM/yyyy - HH:mm")
+                                            </div>
+                                            @if (!string.IsNullOrEmpty(appointment.Notes))
+                                            {
+                                                <div class="appointment-reason">
+                                                    <i class="fas fa-notes-medical"></i>
+                                                    @appointment.Notes
+                                                </div>
+                                            }
+                                        </div>
+                                        <div class="appointment-actions">
+                                            <button class="btn btn-sm btn-outline-primary" onclick="showAppointmentDetails(@appointment.AppointmentId)">Details</button>
+                                            <button class="btn btn-sm btn-outline-warning" onclick="showRescheduleModal(@appointment.AppointmentId)">Reschedule</button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="cancelAppointment(@appointment.AppointmentId)">Cancel</button>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="no-appointments">
+                                    <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                                    <h5>No upcoming appointments</h5>
+                                    <p class="text-muted">Book an appointment with a doctor now!</p>
+                                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#bookAppointmentModal">
+                                        <i class="fas fa-plus"></i> Book Appointment
+                                    </button>
+                                </div>
+                            }
                         </div>
                     </div>
 
                     <!-- Past Appointments -->
                     <div class="tab-pane fade" id="past" role="tabpanel">
-                        <div class="appointments-list" id="pastAppointments">
-                            <!-- Populated by JavaScript -->
+                        <div class="appointments-list">
+                            @{
+                                var pastAppointments = ViewBag.PastAppointments as List<AppointmentViewModel>;
+                            }
+                            @if (pastAppointments != null && pastAppointments.Any())
+                            {
+                                @foreach (var appointment in pastAppointments)
+                                {
+                                    <div class="appointment-card">
+                                        <div class="appointment-header">
+                                            <div class="appointment-doctor">
+                                                <img src="@(string.IsNullOrEmpty(appointment.DoctorAvatarUrl) ? "/images/default-doctor.png" : appointment.DoctorAvatarUrl)" alt="Doctor" class="doctor-avatar-small">
+                                                <div class="doctor-info">
+                                                    <h6>@appointment.DoctorName</h6>
+                                                    <p>@appointment.SpecialtyName</p>
+                                                </div>
+                                            </div>
+                                            <div class="appointment-status">
+                                                <span class="status-badge status-completed">Completed</span>
+                                            </div>
+                                        </div>
+                                        <div class="appointment-details">
+                                            <div class="appointment-time">
+                                                <i class="fas fa-calendar-alt"></i>
+                                                @appointment.AppointmentDateTime.ToString("dd/MM/yyyy - HH:mm")
+                                            </div>
+                                            @if (!string.IsNullOrEmpty(appointment.Notes))
+                                            {
+                                                <div class="appointment-reason">
+                                                    <i class="fas fa-notes-medical"></i>
+                                                    @appointment.Notes
+                                                </div>
+                                            }
+                                        </div>
+                                        <div class="appointment-actions">
+                                            <button class="btn btn-sm btn-outline-primary" onclick="showAppointmentDetails(@appointment.AppointmentId)">Details</button>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="no-appointments">
+                                    <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                                    <h5>No medical history yet</h5>
+                                    <p class="text-muted">Your past appointments will appear here.</p>
+                                </div>
+                            }
                         </div>
                     </div>
 
                     <!-- Cancelled Appointments -->
                     <div class="tab-pane fade" id="cancelled" role="tabpanel">
-                        <div class="appointments-list" id="cancelledAppointments">
-                            <!-- Populated by JavaScript -->
+                        <div class="appointments-list">
+                            @{
+                                var cancelledAppointments = ViewBag.CancelledAppointments as List<AppointmentViewModel>;
+                            }
+                            @if (cancelledAppointments != null && cancelledAppointments.Any())
+                            {
+                                @foreach (var appointment in cancelledAppointments)
+                                {
+                                    <div class="appointment-card">
+                                        <div class="appointment-header">
+                                            <div class="appointment-doctor">
+                                                <img src="@(string.IsNullOrEmpty(appointment.DoctorAvatarUrl) ? "/images/default-doctor.png" : appointment.DoctorAvatarUrl)" alt="Doctor" class="doctor-avatar-small">
+                                                <div class="doctor-info">
+                                                    <h6>@appointment.DoctorName</h6>
+                                                    <p>@appointment.SpecialtyName</p>
+                                                </div>
+                                            </div>
+                                            <div class="appointment-status">
+                                                <span class="status-badge status-cancelled">Cancelled</span>
+                                            </div>
+                                        </div>
+                                        <div class="appointment-details">
+                                            <div class="appointment-time">
+                                                <i class="fas fa-calendar-alt"></i>
+                                                @appointment.AppointmentDateTime.ToString("dd/MM/yyyy - HH:mm")
+                                            </div>
+                                            @if (!string.IsNullOrEmpty(appointment.Notes))
+                                            {
+                                                <div class="appointment-reason">
+                                                    <i class="fas fa-notes-medical"></i>
+                                                    @appointment.Notes
+                                                </div>
+                                            }
+                                        </div>
+                                        <div class="appointment-actions">
+                                            <button class="btn btn-sm btn-outline-primary" onclick="showAppointmentDetails(@appointment.AppointmentId)">Details</button>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="no-appointments">
+                                    <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                                    <h5>No cancelled appointments</h5>
+                                    <p class="text-muted">Great! You don't have any cancelled appointments.</p>
+                                </div>
+                            }
                         </div>
                     </div>
                 </div>
@@ -92,59 +251,538 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form id="bookAppointmentForm">
+                @using (Html.BeginForm("BookAppointment", "User", FormMethod.Post, new { id = "bookAppointmentForm" }))
+                {
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="specialty" class="form-label">Specialty</label>
-                            <select class="form-control" id="specialty" required>
-                                <option value="">Select Specialty</option>
-                                <option value="cardiology">Cardiology</option>
-                                <option value="dermatology">Dermatology</option>
-                                <option value="neurology">Neurology</option>
-                                <option value="orthopedics">Orthopedics</option>
-                                <option value="pediatrics">Pediatrics</option>
-                                <option value="general">General Medicine</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="doctor" class="form-label">Doctor</label>
-                            <select class="form-control" id="doctor" required>
-                                <option value="">Select Doctor</option>
-                            </select>
-                        </div>
+                            <label for="SpecialtyId" class="form-label">Specialty</label>
+                            @Html.DropDownListFor(m => m.SpecialtyId,
+                            new SelectList(Model.Specialties, "SpecialtyId", "Name"),
+                                                "Choose specialty",
+                                                new { @class = "form-control", id = "specialty", required = "required" })
+                        @Html.ValidationMessageFor(m => m.SpecialtyId, "", new { @class = "text-danger" })
                     </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="appointmentDate" class="form-label">Date</label>
-                            <input type="date" class="form-control" id="appointmentDate" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="appointmentTime" class="form-label">Time</label>
-                            <select class="form-control" id="appointmentTime" required>
-                                <option value="">Select Time</option>
-                            </select>
-                        </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="DoctorUserId" class="form-label">Doctor</label>
+                        @Html.DropDownListFor(m => m.DoctorUserId,
+                                                new SelectList(Enumerable.Empty<SelectListItem>(), "Value", "Text"),
+                                                "Choose specialty first",
+                                                new { @class = "form-control", id = "doctor", required = "required" })
+                        @Html.ValidationMessageFor(m => m.DoctorUserId, "", new { @class = "text-danger" })
                     </div>
-                    <div class="mb-3">
-                        <label for="reason" class="form-label">Reason for Visit</label>
-                        <textarea class="form-control" id="reason" rows="3" placeholder="Describe your symptoms or reason for the appointment"></textarea>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="AppointmentDate" class="form-label">Appointment Date</label>
+                        @Html.EditorFor(m => m.AppointmentDate, new { htmlAttributes = new { @class = "form-control", id = "appointmentDate", type = "date", required = "required", min = DateTime.Now.ToString("yyyy-MM-dd") } })
+                        @Html.ValidationMessageFor(m => m.AppointmentDate, "", new { @class = "text-danger" })
                     </div>
-                    <div class="mb-3">
-                        <label for="appointmentType" class="form-label">Appointment Type</label>
-                        <select class="form-control" id="appointmentType" required>
-                            <option value="in-person">In-Person</option>
-                            <option value="video">Video Call</option>
-                            <option value="phone">Phone Call</option>
-                        </select>
+                    <div class="col-md-6 mb-3">
+                        <label for="AppointmentTime" class="form-label">Appointment Time</label>
+                        @Html.DropDownListFor(m => m.AppointmentTime,
+                                                new SelectList(Enumerable.Empty<SelectListItem>(), "Value", "Text"),
+                                                "Choose date first",
+                                                new { @class = "form-control", id = "appointmentTime", required = "required" })
+                        @Html.ValidationMessageFor(m => m.AppointmentTime, "", new { @class = "text-danger" })
                     </div>
-                </form>
+                </div>
+                <div class="mb-3">
+                    <label for="Notes" class="form-label">Reason for Visit</label>
+                    @Html.TextAreaFor(m => m.Notes, new { @class = "form-control", id = "reason", rows = "3", placeholder = "Describe symptoms or reason for visit" })
+                    @Html.ValidationMessageFor(m => m.Notes, "", new { @class = "text-danger" })
+                </div>
+                <div class="mb-3">
+                    <label for="AppointmentType" class="form-label">Appointment Type</label>
+                    @Html.DropDownListFor(m => m.AppointmentType,
+                                        new List<SelectListItem>
+                                        {
+                                        new SelectListItem { Text = "In-person Visit", Value = "in-person" },
+                                        new SelectListItem { Text = "Video Consultation", Value = "video" },
+                                        new SelectListItem { Text = "Phone Consultation", Value = "phone" }
+                                        },
+                                        "Choose appointment type",
+                                        new { @class = "form-control", id = "appointmentType", required = "required" })
+                    @Html.ValidationMessageFor(m => m.AppointmentType, "", new { @class = "text-danger" })
+                </div>
+                                }
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="bookAppointment()">Book Appointment</button>
+                <button type="submit" form="bookAppointmentForm" class="btn btn-primary">Book Appointment</button>
             </div>
         </div>
     </div>
 </div>
 
-<script src="~/js/user/appointments.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const specialtySelect = document.getElementById('specialty');
+        const doctorSelect = document.getElementById('doctor');
+        const dateInput = document.getElementById('appointmentDate');
+        const timeSelect = document.getElementById('appointmentTime');
+
+        // When specialty changes, load doctors
+        specialtySelect.addEventListener('change', function() {
+            const specialtyId = this.value;
+            if (specialtyId) {
+                fetch(`/User/GetDoctorsBySpecialty?specialtyId=${specialtyId}`)
+                    .then(response => response.text())
+                    .then(html => {
+                        doctorSelect.innerHTML = html;
+                        timeSelect.innerHTML = '<option value="">Choose doctor and date first</option>';
+                    })
+                    .catch(error => {
+                        console.error('Error loading doctors:', error);
+                        doctorSelect.innerHTML = '<option value="">Error loading doctors</option>';
+                    });
+            } else {
+                doctorSelect.innerHTML = '<option value="">Choose specialty first</option>';
+                timeSelect.innerHTML = '<option value="">Choose doctor and date first</option>';
+            }
+        });
+
+        // When doctor or date changes, load available time slots
+        function loadTimeSlots() {
+            const doctorId = doctorSelect.value;
+            const date = dateInput.value;
+
+            if (doctorId && date) {
+                fetch(`/User/GetAvailableTimeSlots?doctorId=${doctorId}&date=${date}`)
+                    .then(response => response.text())
+                    .then(html => {
+                        timeSelect.innerHTML = html;
+                    })
+                    .catch(error => {
+                        console.error('Error loading time slots:', error);
+                        timeSelect.innerHTML = '<option value="">Error loading time slots</option>';
+                    });
+            } else {
+                timeSelect.innerHTML = '<option value="">Choose doctor and date first</option>';
+            }
+        }
+
+        doctorSelect.addEventListener('change', loadTimeSlots);
+        dateInput.addEventListener('change', loadTimeSlots);
+
+        // Auto-dismiss alerts after 5 seconds
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 5000);
+    });
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const doctorId = urlParams.get('doctorId'); // Lấy doctorId từ URL
+        const specialtyId = urlParams.get('specialtyId'); // Lấy specialtyId từ URL
+
+        if (doctorId) {
+            const specialtyDropdown = document.getElementById("specialty");
+            const doctorDropdown = document.getElementById("doctor");
+
+            // Điền giá trị vào dropdown Specialty
+            specialtyDropdown.value = specialtyId;
+
+            // Gọi lại sự kiện change của specialty để tải danh sách bác sĩ
+            specialtyDropdown.dispatchEvent(new Event('change'));
+
+            // Đảm bảo danh sách bác sĩ đã được tải xong trước khi điền giá trị
+            const checkDoctorsLoaded = setInterval(() => {
+                const options = doctorDropdown.querySelectorAll('option');
+                if (options.length > 1) { // Kiểm tra nếu danh sách bác sĩ đã được tải
+                    doctorDropdown.value = doctorId; // Điền giá trị bác sĩ
+                    clearInterval(checkDoctorsLoaded); // Dừng kiểm tra
+                }
+            }, 100); // Kiểm tra mỗi 100ms
+
+            // Hiển thị modal
+            const bookAppointmentModal = new bootstrap.Modal(document.getElementById('bookAppointmentModal'));
+            bookAppointmentModal.show();
+        }
+    });
+</script>
+
+<style>
+    .appointment-card {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background: white;
+        transition: all 0.3s ease;
+        min-height: 225px;
+        display: flex;
+        flex-direction: column;
+    }
+
+        .appointment-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-color: #007bff;
+        }
+
+    .appointment-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .appointment-doctor {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .doctor-avatar-small {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .doctor-info h6 {
+        margin: 0;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .doctor-info p {
+        margin: 0;
+        color: #666;
+        font-size: 0.9rem;
+    }
+
+    .appointment-details {
+        margin-bottom: 1rem;
+        flex-grow: 1;
+    }
+
+    .appointment-time, .appointment-reason {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+        color: #555;
+        font-size: 0.9rem;
+    }
+
+    .appointment-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        min-height: 32px;
+        align-items: center;
+        padding-top: 0.5rem;
+    }
+
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .status-pending {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+
+    .status-confirmed {
+        background-color: #e3f2fd;
+        color: #1976d2;
+    }
+
+    .status-completed {
+        background-color: #e8f5e8;
+        color: #388e3c;
+    }
+
+    .status-cancelled {
+        background-color: #ffebee;
+        color: #d32f2f;
+    }
+
+    .no-appointments {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #666;
+    }
+
+        .no-appointments i {
+            margin-bottom: 1rem;
+        }
+
+        .no-appointments h5 {
+            margin-bottom: 1rem;
+            color: #333;
+        }
+
+    .tabs-nav {
+        border-bottom: 1px solid #e0e0e0;
+        margin-bottom: 1.5rem;
+    }
+
+    .tab-button {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        background: none;
+        color: #666;
+        font-weight: 500;
+        border-bottom: 2px solid transparent;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+        .tab-button.active {
+            color: #007bff;
+            border-bottom-color: #007bff;
+        }
+
+        .tab-button:hover {
+            color: #007bff;
+        }
+</style>
+
+
+<script>
+    // Show appointment details
+    function showAppointmentDetails(appointmentId) {
+        fetch(`/User/AppointmentDetails?id=${appointmentId}`)
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('appointmentDetailsContent').innerHTML = html;
+                var modal = new bootstrap.Modal(document.getElementById('appointmentDetailsModal'));
+                modal.show();
+            })
+            .catch(error => {
+                console.error('Error loading appointment details:', error);
+                alert('Error loading appointment details');
+            });
+    }
+
+    // Show reschedule modal
+    function showRescheduleModal(appointmentId) {
+
+        const url = `/User/RescheduleAppointment?id=${appointmentId}`;
+
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.text();
+            })
+            .then(html => {
+
+                const contentDiv = document.getElementById('rescheduleAppointmentContent');
+                if (contentDiv) {
+                    contentDiv.innerHTML = html;
+
+                    const modalElement = document.getElementById('rescheduleAppointmentModal');
+                    if (modalElement) {
+                        var modal = new bootstrap.Modal(modalElement);
+                        modal.show();
+
+                        // Setup modal functionality after content is loaded
+                        setTimeout(() => {
+                            setupRescheduleModal();
+                        }, 100);
+                    } else {
+                        console.error('Modal element not found!');
+                    }
+                } else {
+                    console.error('Content div not found!');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading reschedule form:', error);
+                alert('Error loading reschedule form: ' + error.message);
+            });
+    }
+
+    // Setup reschedule modal functionality
+    function setupRescheduleModal() {
+
+        const dateInput = document.getElementById('rescheduleDate');
+        const timeSelect = document.getElementById('rescheduleTime');
+        const doctorId = document.getElementById('hiddenDoctorId')?.value;
+        const appointmentId = document.getElementById('hiddenAppointmentId')?.value;
+
+        if (!dateInput || !timeSelect || !doctorId || !appointmentId) {
+            console.error('Required elements not found!');
+            return;
+        }
+
+
+
+        function loadTimeSlots(inputElement) {
+            const date = inputElement.value;
+
+            if (date && doctorId && appointmentId) {
+                timeSelect.innerHTML = '<option value="">Loading...</option>';
+
+                const url = `/User/GetAvailableTimeSlotsForReschedule?doctorId=${doctorId}&date=${date}&excludeAppointmentId=${appointmentId}`;
+
+                fetch(url)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.text();
+                    })
+                    .then(html => {
+                        timeSelect.innerHTML = html;
+
+                        // Count available options
+                        const options = timeSelect.querySelectorAll('option:not([disabled])');
+
+                    })
+                    .catch(error => {
+                        console.error('Error loading time slots:', error);
+                        timeSelect.innerHTML = '<option value="">Error loading time slots</option>';
+                    });
+            } else {
+                console.log('🔥 Missing required data:', { date, doctorId, appointmentId });
+                timeSelect.innerHTML = '<option value="">Choose date first</option>';
+            }
+        }
+
+        // Remove existing listeners to prevent duplicates
+        const newDateInput = dateInput.cloneNode(true);
+        dateInput.parentNode.replaceChild(newDateInput, dateInput);
+
+
+
+        // Add event listener
+        newDateInput.addEventListener('change', function() {
+            loadTimeSlots(this);
+        });
+
+        // Load time slots immediately if date is already set
+        if (newDateInput.value) {
+            loadTimeSlots(newDateInput);
+        }
+    }
+
+    // Cancel appointment
+    function cancelAppointment(appointmentId) {
+        if (confirm('Are you sure you want to cancel this appointment?')) {
+            fetch(`/User/CancelAppointment`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: `id=${appointmentId}`
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Error cancelling appointment');
+                }
+            })
+            .catch(error => {
+                console.error('Error cancelling appointment:', error);
+                alert('Error cancelling appointment');
+            });
+        }
+    }
+
+    // Submit reschedule form
+    function submitRescheduleForm() {
+        document.getElementById('rescheduleForm').submit();
+    }
+</script>
+
+<!-- Appointment Details Modal -->
+<div class="modal fade" id="appointmentDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Appointment Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="appointmentDetailsContent">
+                <!-- Content loaded via AJAX -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reschedule Appointment Modal -->
+<div class="modal fade" id="rescheduleAppointmentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reschedule Appointment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="rescheduleAppointmentContent">
+                <!-- Content loaded via AJAX -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitRescheduleForm()">Reschedule</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .appointment-details-modal .doctor-profile {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .doctor-avatar-large {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .info-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+        .info-item.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .info-item i {
+            color: #007bff;
+            margin-top: 0.25rem;
+        }
+
+        .info-item label {
+            font-weight: 600;
+            color: #666;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .info-item span {
+            color: #333;
+        }
+
+    .current-appointment-info {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border-left: 4px solid #007bff;
+    }
+</style>
