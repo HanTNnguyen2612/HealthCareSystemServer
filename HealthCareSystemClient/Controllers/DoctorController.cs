@@ -37,6 +37,7 @@ namespace HealthCareSystemClient.Controllers
         public IActionResult Messages()
         {
             ViewData["ActiveMenu"] = "Messages";
+            ViewBag.ApiBaseUrl = "https://localhost:7293";
             return View();
         }
     }

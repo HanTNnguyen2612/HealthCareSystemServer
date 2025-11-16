@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BusinessObjects.Domain;
@@ -37,6 +38,20 @@ namespace DataAccessObjects.DAO
         public async Task<Conversation?> GetByIdAsync(int conversationId)
         {
             return await _context.Conversations.FirstOrDefaultAsync(c => c.ConversationId == conversationId);
+        }
+
+        public async Task<List<Conversation>> GetByUserIdAsync(int userId)
+        {
+            return await _context.Conversations
+                .AsNoTracking()
+                .Where(c => c.PatientUserId == userId || c.DoctorUserId == userId)
+                .Include(c => c.PatientUser)
+                .Include(c => c.DoctorUser)
+                .Include(c => c.DoctorUser.Doctor)
+                    .ThenInclude(d => d.Specialty)
+                .Include(c => c.Messages)
+                .OrderByDescending(c => c.UpdatedAt ?? c.CreatedAt)
+                .ToListAsync();
         }
     }
 }
