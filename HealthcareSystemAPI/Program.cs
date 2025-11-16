@@ -10,6 +10,8 @@ using Services.Interface;
 using Services.Services;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json.Serialization;
+using HealthcareSystemAPI.Converters;
 using HealthcareSystemAPI.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -26,7 +28,14 @@ builder.Services.AddCors(options =>
                   .AllowCredentials();
         });
 });
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        // Add DateOnly converters for proper JSON serialization/deserialization
+        options.JsonSerializerOptions.Converters.Add(new DateOnlyJsonConverter());
+        options.JsonSerializerOptions.Converters.Add(new DateOnlyNullableJsonConverter());
+    });
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -99,7 +108,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             }
         };
     });
-
 
 var app = builder.Build();
 app.UseCors("AllowLocalhost");

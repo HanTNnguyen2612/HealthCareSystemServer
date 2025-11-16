@@ -1,4 +1,5 @@
 ﻿using BusinessObjects.DataTransferObjects.PatientDTOs;
+using BusinessObjects.Domain;
 using Repositories.Interface;
 using Services.Interface;
 using System;
@@ -57,6 +58,43 @@ namespace Services.Services
 
             await _patientRepository.UpdatePatientAsync(patient);
             return true;
+        }
+
+        public async Task<bool> CreatePatientProfileAsync(CreatePatientDTO patientDto)
+        {
+            try
+            {
+                // Kiểm tra xem patient đã tồn tại chưa
+                var existingPatient = await _patientRepository.GetPatientByUserIdAsync(patientDto.UserId);
+                if (existingPatient != null)
+                {
+                    return false; // Patient đã tồn tại
+                }
+
+                // Tạo patient mới (UserId đã được validate từ register)
+                var newPatient = new Patient
+                {
+                    UserId = patientDto.UserId,
+                    DateOfBirth = patientDto.DateOfBirth,
+                    Gender = patientDto.Gender,
+                    BloodType = patientDto.BloodType,
+                    Allergies = patientDto.Allergies,
+                    Weight = patientDto.Weight,
+                    Height = patientDto.Height,
+                    Bmi = patientDto.BMI,
+                    Address = patientDto.Address,
+                    EmergencyPhoneNumber = patientDto.EmergencyPhoneNumber,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                var createdPatient = await _patientRepository.CreatePatientAsync(newPatient);
+                return createdPatient != null;
+            }
+            catch (Exception)
+            {
+                // Re-throw to be handled by controller
+                throw;
+            }
         }
     }
 }
