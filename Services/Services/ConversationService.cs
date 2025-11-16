@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using BusinessObjects.Domain;
 using Repositories.Interface;
@@ -34,6 +35,11 @@ namespace Services.Services
         public bool IsParticipant(Conversation conversation, int userId)
         {
             return conversation.PatientUserId == userId || conversation.DoctorUserId == userId;
+        }
+
+        public async Task<List<Conversation>> GetByUserIdAsync(int userId)
+        {
+            return await _repository.GetByUserIdAsync(userId);
         }
     }
 }

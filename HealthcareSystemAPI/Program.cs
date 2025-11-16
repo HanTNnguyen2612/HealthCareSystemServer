@@ -24,7 +24,14 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowLocalhost",
         policy =>
         {
-            policy.WithOrigins("https://localhost:7002", "http://localhost:7002") 
+            policy.WithOrigins(
+                    "https://localhost:7002", 
+                    "http://localhost:7002",
+                    "https://localhost:7206",
+                    "http://localhost:7206",
+                    "https://localhost:5237",
+                    "http://localhost:5237"
+                  ) 
                   .AllowAnyHeader()
                   .AllowAnyMethod()
                   .AllowCredentials();
@@ -110,18 +117,31 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     }
                 }
                 return Task.CompletedTask;
+            },
+            OnChallenge = context =>
+            {
+                // Skip authentication for OPTIONS requests (CORS preflight)
+                if (context.Request.Method == "OPTIONS")
+                {
+                    context.HandleResponse();
+                    return Task.CompletedTask;
+                }
+                return Task.CompletedTask;
             }
         };
     });
 
 var app = builder.Build();
-app.UseCors("AllowLocalhost");
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// CORS must be before UseAuthentication and UseAuthorization
+app.UseCors("AllowLocalhost");
 
 app.UseHttpsRedirection();
 

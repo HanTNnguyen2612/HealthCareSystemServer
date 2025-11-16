@@ -18,6 +18,14 @@ namespace DataAccessObjects.DAO
         public async Task<Message> CreateAsync(Message message)
         {
             _context.Messages.Add(message);
+            
+            // Update conversation's UpdatedAt
+            var conversation = await _context.Conversations.FindAsync(message.ConversationId);
+            if (conversation != null)
+            {
+                conversation.UpdatedAt = System.DateTime.UtcNow;
+            }
+            
             await _context.SaveChangesAsync();
             return message;
         }

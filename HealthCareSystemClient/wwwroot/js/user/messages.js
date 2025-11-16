@@ -1,337 +1,505 @@
-﻿// Messages functionality
+﻿// Messages functionality with SignalR
 let currentConversation = null
 let conversations = []
+let connection = null
 
-document.addEventListener("DOMContentLoaded", () => {
-    updateUserInfo()
-    loadConversations()
-})
+// Initialize SignalR connection
+async function initializeSignalR() {
+    if (!window.userToken) {
+        console.error('No authentication token found')
+        return
+    }
 
-function updateUserInfo() {
-    const userName = localStorage.getItem("userName") || "John Doe"
-    document.getElementById("userName").textContent = userName
+    const hubUrl = `${window.apiBaseUrl}/hubs/chat`
+    connection = new signalR.HubConnectionBuilder()
+        .withUrl(hubUrl, {
+            accessTokenFactory: () => window.userToken,
+            skipNegotiation: false,
+            transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling
+        })
+        .withAutomaticReconnect()
+        .build()
+
+    // Handle received messages
+    connection.on('ReceiveMessage', (message) => {
+        if (currentConversation && currentConversation.conversationId === message.conversationId) {
+            addMessageToUI(message)
+            markAsRead(message.conversationId)
+        } else {
+            // Update conversation list
+            updateConversationLastMessage(message.conversationId, message)
+        }
+    })
+
+    // Handle read receipts
+    connection.on('ReadReceipt', (data) => {
+        console.log('Read receipt received', data)
+    })
+
+    // Handle typing indicators
+    connection.on('Typing', (data) => {
+        // Implement typing indicator if needed
+        console.log('User typing', data)
+    })
+
+    // Handle connection events
+    connection.onclose(() => {
+        console.log('SignalR connection closed')
+    })
+
+    connection.onreconnecting(() => {
+        console.log('SignalR reconnecting...')
+    })
+
+    connection.onreconnected(() => {
+        console.log('SignalR reconnected')
+        if (currentConversation) {
+            joinConversation(currentConversation.conversationId)
+        }
+    })
+
+    try {
+        await connection.start()
+        console.log('SignalR connected')
+    } catch (err) {
+        console.error('SignalR connection error:', err)
+    }
 }
 
-function loadConversations() {
-    conversations = [
-        {
-            id: 1,
-            doctorName: "Dr. Sarah Johnson",
-            specialty: "Cardiology",
-            avatar: "/placeholder.svg?height=48&width=48",
-            lastMessage: "Your test results look good. Continue with current medication.",
-            time: "2h ago",
-            unread: 2,
-            status: "online",
-            messages: [
-                {
-                    id: 1,
-                    sender: "doctor",
-                    text: "Hello! I've reviewed your recent test results.",
-                    time: "10:30 AM",
-                },
-                {
-                    id: 2,
-                    sender: "user",
-                    text: "Hi Dr. Johnson, thank you for reviewing them. How do they look?",
-                    time: "10:32 AM",
-                },
-                {
-                    id: 3,
-                    sender: "doctor",
-                    text: "Your test results look good. Continue with current medication.",
-                    time: "10:35 AM",
-                },
-            ],
-        },
-        {
-            id: 2,
-            doctorName: "Dr. Michael Chen",
-            specialty: "Dermatology",
-            avatar: "/placeholder.svg?height=48&width=48",
-            lastMessage: "Please send me a photo of the affected area.",
-            time: "1d ago",
-            unread: 0,
-            status: "away",
-            messages: [
-                {
-                    id: 1,
-                    sender: "doctor",
-                    text: "How is the treatment progressing?",
-                    time: "Yesterday 2:15 PM",
-                },
-                {
-                    id: 2,
-                    sender: "user",
-                    text: "It's getting better, but I still see some redness.",
-                    time: "Yesterday 2:20 PM",
-                },
-                {
-                    id: 3,
-                    sender: "doctor",
-                    text: "Please send me a photo of the affected area.",
-                    time: "Yesterday 2:22 PM",
-                },
-            ],
-        },
-        {
-            id: 3,
-            doctorName: "Dr. Emily Davis",
-            specialty: "General Medicine",
-            avatar: "/placeholder.svg?height=48&width=48",
-            lastMessage: "Your appointment is confirmed for tomorrow.",
-            time: "2d ago",
-            unread: 0,
-            status: "offline",
-            messages: [
-                {
-                    id: 1,
-                    sender: "user",
-                    text: "I'd like to schedule a follow-up appointment.",
-                    time: "2 days ago 11:00 AM",
-                },
-                {
-                    id: 2,
-                    sender: "doctor",
-                    text: "Of course! I have availability tomorrow at 3:15 PM. Would that work for you?",
-                    time: "2 days ago 11:05 AM",
-                },
-                {
-                    id: 3,
-                    sender: "user",
-                    text: "Perfect, that works for me.",
-                    time: "2 days ago 11:07 AM",
-                },
-                {
-                    id: 4,
-                    sender: "doctor",
-                    text: "Your appointment is confirmed for tomorrow.",
-                    time: "2 days ago 11:10 AM",
-                },
-            ],
-        },
-        {
-            id: 4,
-            doctorName: "Dr. Robert Wilson",
-            specialty: "Neurology",
-            avatar: "/placeholder.svg?height=48&width=48",
-            lastMessage: "Let's discuss your symptoms in detail.",
-            time: "3d ago",
-            unread: 1,
-            status: "online",
-            messages: [
-                {
-                    id: 1,
-                    sender: "doctor",
-                    text: "I've received your referral from Dr. Davis.",
-                    time: "3 days ago 9:30 AM",
-                },
-                {
-                    id: 2,
-                    sender: "user",
-                    text: "Yes, I've been experiencing some headaches lately.",
-                    time: "3 days ago 9:35 AM",
-                },
-                {
-                    id: 3,
-                    sender: "doctor",
-                    text: "Let's discuss your symptoms in detail.",
-                    time: "3 days ago 9:40 AM",
-                },
-            ],
-        },
-    ]
+// Join a conversation group
+async function joinConversation(conversationId) {
+    if (connection && connection.state === signalR.HubConnectionState.Connected) {
+        try {
+            await connection.invoke('JoinConversation', conversationId)
+        } catch (err) {
+            console.error('Error joining conversation:', err)
+        }
+    }
+}
 
+// Leave a conversation group
+async function leaveConversation(conversationId) {
+    if (connection && connection.state === signalR.HubConnectionState.Connected) {
+        try {
+            await connection.invoke('LeaveConversation', conversationId)
+        } catch (err) {
+            console.error('Error leaving conversation:', err)
+        }
+    }
+}
+
+// Load conversations from API
+async function loadConversations() {
+    // Check if token exists
+    if (!window.userToken || window.userToken === '' || window.userToken === 'null') {
+        console.error('No authentication token found')
+        document.getElementById('conversationsList').innerHTML = '<p class="text-danger p-3">Please login to view conversations.</p>'
+        return
+    }
+
+    // Check if API URL exists
+    if (!window.apiBaseUrl) {
+        console.error('API base URL not configured')
+        document.getElementById('conversationsList').innerHTML = '<p class="text-danger p-3">API configuration error. Please contact support.</p>'
+        return
+    }
+
+    try {
+        const url = `${window.apiBaseUrl}/api/conversation/my-conversations`
+        console.log('Loading conversations from:', url)
+        
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${window.userToken}`,
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include'
+        })
+
+        console.log('Response status:', response.status, response.statusText)
+
+        if (!response.ok) {
+            const errorText = await response.text()
+            console.error('API Error:', errorText)
+            
+            if (response.status === 401) {
+                document.getElementById('conversationsList').innerHTML = '<p class="text-danger p-3">Session expired. Please <a href="/Login">login again</a>.</p>'
+                return
+            }
+            
+            throw new Error(`Failed to load conversations: ${response.status} ${response.statusText}`)
+        }
+
+        const data = await response.json()
+        console.log('Conversations loaded:', data)
+        conversations = data || []
     renderConversations()
+    } catch (error) {
+        console.error('Error loading conversations:', error)
+        document.getElementById('conversationsList').innerHTML = `<p class="text-danger p-3">Error loading conversations: ${error.message}. Please refresh the page or contact support.</p>`
+    }
 }
 
+// Render conversations list
 function renderConversations() {
-    const container = document.getElementById("conversationsList")
+    const container = document.getElementById('conversationsList')
+    
+    if (conversations.length === 0) {
+        container.innerHTML = '<p class="text-muted p-3">No conversations yet. Start a new conversation with a doctor.</p>'
+        return
+    }
+
     container.innerHTML = conversations
-        .map(
-            (conversation) => `
-    <div class="conversation-item ${conversation.unread > 0 ? "unread" : ""}" onclick="selectConversation(${conversation.id})">
+        .map((conversation) => {
+            const lastMessage = conversation.lastMessage
+            const timeAgo = lastMessage ? formatTimeAgo(lastMessage.sentAt) : 'No messages'
+            const preview = lastMessage ? (lastMessage.content.length > 50 ? lastMessage.content.substring(0, 50) + '...' : lastMessage.content) : 'Start conversation'
+            
+            return `
+                <div class="conversation-item ${conversation.unreadCount > 0 ? 'unread' : ''}" onclick="selectConversation(${conversation.conversationId})">
       <div class="conversation-avatar">
-        <img src="${conversation.avatar}" alt="${conversation.doctorName}">
-        <div class="status-indicator ${conversation.status}"></div>
+                        <img src="${conversation.otherUserAvatar}" alt="${conversation.otherUserName}">
       </div>
       <div class="conversation-content">
         <div class="conversation-header">
-          <h6 class="conversation-name">${conversation.doctorName}</h6>
-          <span class="conversation-time">${conversation.time}</span>
+                            <h6 class="conversation-name">${conversation.otherUserName}</h6>
+                            <span class="conversation-time">${timeAgo}</span>
         </div>
-        <p class="conversation-specialty">${conversation.specialty}</p>
-        <p class="conversation-preview">${conversation.lastMessage}</p>
+                        <p class="conversation-specialty">${conversation.specialty || 'General'}</p>
+                        <p class="conversation-preview">${preview}</p>
       </div>
-      ${conversation.unread > 0 ? `<div class="unread-badge">${conversation.unread}</div>` : ""}
+                    ${conversation.unreadCount > 0 ? `<div class="unread-badge">${conversation.unreadCount}</div>` : ''}
     </div>
-  `,
-        )
-        .join("")
+            `
+        })
+        .join('')
 }
 
-function selectConversation(conversationId) {
-    currentConversation = conversations.find((c) => c.id === conversationId)
+// Parse UTC date string to local Date
+function parseUTCDate(dateString) {
+    if (!dateString) return new Date()
+    // If dateString ends with Z or has timezone info, parse as UTC
+    if (dateString.endsWith('Z') || dateString.includes('+') || dateString.includes('-', 10)) {
+        return new Date(dateString)
+    }
+    // Otherwise assume it's already UTC and add Z
+    return new Date(dateString + (dateString.includes('T') ? 'Z' : ''))
+}
+
+// Format time for message display (12-hour format with AM/PM)
+function formatMessageTime(dateString) {
+    const date = parseUTCDate(dateString)
+    return date.toLocaleTimeString('en-US', { 
+        hour: 'numeric', 
+        minute: '2-digit',
+        hour12: true 
+    })
+}
+
+// Format time ago
+function formatTimeAgo(dateString) {
+    const date = parseUTCDate(dateString)
+    const now = new Date()
+    const diffMs = now - date
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+
+    if (diffMins < 1) return 'Just now'
+    if (diffMins < 60) return `${diffMins}m ago`
+    if (diffHours < 24) return `${diffHours}h ago`
+    if (diffDays < 7) return `${diffDays}d ago`
+    return date.toLocaleDateString()
+}
+
+// Select a conversation
+async function selectConversation(conversationId) {
+    // Remove active class from all
+    document.querySelectorAll('.conversation-item').forEach((item) => {
+        item.classList.remove('active')
+    })
+    event.currentTarget.classList.add('active')
+
+    // Find conversation
+    currentConversation = conversations.find((c) => c.conversationId === conversationId)
+    if (!currentConversation) return
+
+    // Leave previous conversation group
+    if (currentConversation.previousConversationId) {
+        await leaveConversation(currentConversation.previousConversationId)
+    }
+
+    // Join new conversation group
+    await joinConversation(conversationId)
+    currentConversation.previousConversationId = conversationId
 
     // Mark as read
-    currentConversation.unread = 0
+    currentConversation.unreadCount = 0
     renderConversations()
 
-    // Update active state
-    document.querySelectorAll(".conversation-item").forEach((item) => {
-        item.classList.remove("active")
-    })
-    event.currentTarget.classList.add("active")
-
-    // Show chat header and input
-    document.getElementById("chatHeader").style.display = "flex"
-    document.getElementById("chatInputContainer").style.display = "block"
+    // Show chat interface
+    document.getElementById('chatHeader').style.display = 'flex'
+    document.getElementById('chatInputContainer').style.display = 'block'
 
     // Update chat header
-    document.getElementById("chatAvatar").src = currentConversation.avatar
-    document.getElementById("chatDoctorName").textContent = currentConversation.doctorName
-    document.getElementById("chatDoctorSpecialty").textContent = currentConversation.specialty
+    document.getElementById('chatAvatar').src = currentConversation.otherUserAvatar
+    document.getElementById('chatDoctorName').textContent = currentConversation.otherUserName
+    document.getElementById('chatDoctorSpecialty').textContent = currentConversation.specialty || 'General'
 
     // Load messages
-    loadMessages()
+    await loadMessages(conversationId)
+    
+    // Mark messages as read
+    await markAsRead(conversationId)
 }
 
-function loadMessages() {
-    const container = document.getElementById("chatMessages")
+// Load messages for a conversation
+async function loadMessages(conversationId) {
+    try {
+        const response = await fetch(`${window.apiBaseUrl}/api/conversations/${conversationId}/messages?skip=0&take=50`, {
+            headers: {
+                'Authorization': `Bearer ${window.userToken}`,
+                'Content-Type': 'application/json'
+            }
+        })
 
-    if (!currentConversation) {
+        if (!response.ok) {
+            throw new Error('Failed to load messages')
+        }
+
+        const messages = await response.json()
+        renderMessages(messages)
+    } catch (error) {
+        console.error('Error loading messages:', error)
+        document.getElementById('chatMessages').innerHTML = '<p class="text-muted p-3">Error loading messages.</p>'
+    }
+}
+
+// Render messages
+function renderMessages(messages) {
+    const container = document.getElementById('chatMessages')
+
+    if (messages.length === 0) {
         container.innerHTML = `
       <div class="empty-chat">
         <div class="empty-chat-icon">
           <i class="fas fa-comments"></i>
         </div>
-        <h5>Select a conversation</h5>
-        <p>Choose a doctor from the list to start messaging</p>
+                <h5>No messages yet</h5>
+                <p>Start the conversation by sending a message</p>
       </div>
     `
         return
     }
 
-    container.innerHTML = currentConversation.messages
-        .map(
-            (message) => `
-    <div class="message ${message.sender === "user" ? "user-message" : "doctor-message"}">
+    container.innerHTML = messages
+        .map((message) => {
+            const isOwn = message.senderId === window.userId
+            const time = formatMessageTime(message.sentAt)
+            
+            return `
+                <div class="message ${isOwn ? 'user-message' : 'doctor-message'}">
       <div class="message-avatar">
-        <img src="${message.sender === "user" ? "/placeholder.svg?height=36&width=36" : currentConversation.avatar}" alt="${message.sender}">
+                        <img src="${isOwn ? '/placeholder.svg?height=36&width=36' : currentConversation.otherUserAvatar}" alt="${isOwn ? 'You' : currentConversation.otherUserName}">
       </div>
       <div class="message-content">
         <div class="message-header">
-          <span class="message-sender">${message.sender === "user" ? "You" : currentConversation.doctorName}</span>
-          <span class="message-time">${message.time}</span>
+                            <span class="message-sender">${isOwn ? 'You' : currentConversation.otherUserName}</span>
+                            <span class="message-time">${time}</span>
         </div>
-        <div class="message-text">${message.text}</div>
+                        <div class="message-text">${escapeHtml(message.content)}</div>
       </div>
     </div>
-  `,
-        )
-        .join("")
+            `
+        })
+        .join('')
 
     // Scroll to bottom
     container.scrollTop = container.scrollHeight
 }
 
-function sendMessage(event) {
+// Add message to UI (for real-time updates)
+function addMessageToUI(message) {
+    const container = document.getElementById('chatMessages')
+    
+    // Remove empty chat message if exists
+    const emptyChat = container.querySelector('.empty-chat')
+    if (emptyChat) {
+        emptyChat.remove()
+    }
+
+    const isOwn = message.senderId === window.userId
+    const time = formatMessageTime(message.sentAt)
+    
+    const messageDiv = document.createElement('div')
+    messageDiv.className = `message ${isOwn ? 'user-message' : 'doctor-message'}`
+    messageDiv.innerHTML = `
+        <div class="message-avatar">
+            <img src="${isOwn ? '/placeholder.svg?height=36&width=36' : currentConversation.otherUserAvatar}" alt="${isOwn ? 'You' : currentConversation.otherUserName}">
+        </div>
+        <div class="message-content">
+            <div class="message-header">
+                <span class="message-sender">${isOwn ? 'You' : currentConversation.otherUserName}</span>
+                <span class="message-time">${time}</span>
+            </div>
+            <div class="message-text">${escapeHtml(message.content)}</div>
+        </div>
+    `
+    
+    container.appendChild(messageDiv)
+    container.scrollTop = container.scrollHeight
+}
+
+// Escape HTML to prevent XSS
+function escapeHtml(text) {
+    const div = document.createElement('div')
+    div.textContent = text
+    return div.innerHTML
+}
+
+// Send message
+async function sendMessage(event) {
     event.preventDefault()
 
-    const input = document.getElementById("messageInput")
+    const input = document.getElementById('messageInput')
     const messageText = input.value.trim()
 
     if (!messageText || !currentConversation) return
 
-    // Add user message
-    const newMessage = {
-        id: currentConversation.messages.length + 1,
-        sender: "user",
-        text: messageText,
-        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    }
+    // Disable input while sending
+    input.disabled = true
 
-    currentConversation.messages.push(newMessage)
-    currentConversation.lastMessage = messageText
-    currentConversation.time = "now"
+    try {
+        if (connection && connection.state === signalR.HubConnectionState.Connected) {
+            // Send via SignalR
+            await connection.invoke('SendMessage', currentConversation.conversationId, messageText, 'text')
+            input.value = ''
+        } else {
+            // Fallback to HTTP API
+            const response = await fetch(`${window.apiBaseUrl}/api/conversations/${currentConversation.conversationId}/messages`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${window.userToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    content: messageText,
+                    messageType: 'text'
+                })
+            })
 
-    // Clear input
-    input.value = ""
+            if (!response.ok) {
+                throw new Error('Failed to send message')
+            }
 
-    // Update UI
-    loadMessages()
-    renderConversations()
-
-    // Simulate doctor response after 2 seconds
-    setTimeout(() => {
-        const responses = [
-            "Thank you for the update. I'll review this information.",
-            "I understand. Let me check your medical history.",
-            "That's good to hear. Continue with the current treatment.",
-            "I'll need to examine this further. Can you schedule an appointment?",
-            "Please monitor this and let me know if there are any changes.",
-        ]
-
-        const doctorResponse = {
-            id: currentConversation.messages.length + 1,
-            sender: "doctor",
-            text: responses[Math.floor(Math.random() * responses.length)],
-            time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            const message = await response.json()
+            addMessageToUI(message)
+            input.value = ''
         }
-
-        currentConversation.messages.push(doctorResponse)
-        currentConversation.lastMessage = doctorResponse.text
-        currentConversation.time = "now"
-
-        loadMessages()
-        renderConversations()
-    }, 2000)
+    } catch (error) {
+        console.error('Error sending message:', error)
+        alert('Failed to send message. Please try again.')
+    } finally {
+        input.disabled = false
+        input.focus()
+    }
 }
 
+// Mark messages as read
+async function markAsRead(conversationId) {
+    try {
+        if (connection && connection.state === signalR.HubConnectionState.Connected) {
+            await connection.invoke('MarkAsRead', conversationId)
+        } else {
+            await fetch(`${window.apiBaseUrl}/api/conversations/${conversationId}/messages/mark-read`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${window.userToken}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+        }
+    } catch (error) {
+        console.error('Error marking as read:', error)
+    }
+}
+
+// Update conversation last message (for real-time updates)
+function updateConversationLastMessage(conversationId, message) {
+    const conversation = conversations.find(c => c.conversationId === conversationId)
+    if (conversation) {
+        conversation.lastMessage = {
+            content: message.content,
+            sentAt: message.sentAt,
+            senderId: message.senderId
+        }
+        if (message.senderId !== window.userId) {
+            conversation.unreadCount = (conversation.unreadCount || 0) + 1
+        }
+        renderConversations()
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', async () => {
+    // Debug: Log configuration
+    console.log('Initializing messages page...')
+    console.log('API Base URL:', window.apiBaseUrl)
+    console.log('User ID:', window.userId)
+    console.log('User Token exists:', !!window.userToken)
+    console.log('User Name:', window.userName)
+    
+    if (window.userName) {
+        const userNameElement = document.getElementById('userName')
+        if (userNameElement) {
+            userNameElement.textContent = window.userName
+        }
+    }
+    
+    // Load conversations first (doesn't require SignalR)
+    await loadConversations()
+    
+    // Initialize SignalR after conversations are loaded
+    await initializeSignalR()
+})
+
+// Other functions
 function startNewConversation() {
-    alert("Start new conversation functionality would be implemented here")
+    alert('Start new conversation functionality would be implemented here')
 }
 
 function attachFile() {
-    alert("File attachment functionality would be implemented here")
+    alert('File attachment functionality would be implemented here')
 }
 
 function startVideoCall() {
     if (!currentConversation) return
-
-    document.getElementById("videoCallDoctorName").textContent = currentConversation.doctorName
-    document.getElementById("videoCallDoctorName2").textContent = currentConversation.doctorName
-
-    const modal = document.getElementById("videoCallModal")
-    modal.style.display = "block"
+    document.getElementById('videoCallDoctorName').textContent = currentConversation.otherUserName
+    document.getElementById('videoCallDoctorName2').textContent = currentConversation.otherUserName
+    const modal = new bootstrap.Modal(document.getElementById('videoCallModal'))
+    modal.show()
 }
 
 function startVoiceCall() {
     if (!currentConversation) return
-    alert(`Starting voice call with ${currentConversation.doctorName}`)
+    alert(`Starting voice call with ${currentConversation.otherUserName}`)
 }
 
 function viewDoctorProfile() {
     if (!currentConversation) return
-    alert(`Viewing profile for ${currentConversation.doctorName}`)
+    alert(`Viewing profile for ${currentConversation.otherUserName}`)
 }
 
 function toggleMute() {
-    alert("Mute/unmute functionality would be implemented here")
+    alert('Mute/unmute functionality would be implemented here')
 }
 
 function toggleVideo() {
-    alert("Video on/off functionality would be implemented here")
+    alert('Video on/off functionality would be implemented here')
 }
 
 function endCall() {
-    const modal = document.getElementById("videoCallModal")
-    modal.style.display = "none"
-}
-
-function logout() {
-    if (confirm("Are you sure you want to logout?")) {
-        localStorage.clear()
-        window.location.href = "index.html"
-    }
+    const modal = bootstrap.Modal.getInstance(document.getElementById('videoCallModal'))
+    if (modal) modal.hide()
 }
