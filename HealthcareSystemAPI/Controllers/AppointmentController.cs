@@ -1,6 +1,7 @@
 ﻿using BusinessObjects.DataTransferObjects.AppointmentDTOs;
 using Microsoft.AspNetCore.Mvc;
 using Services.Interface;
+using System.Linq;
 using System.Security.Claims;
 
 namespace HealthcareSystemAPI.Controllers
@@ -144,7 +145,7 @@ namespace HealthcareSystemAPI.Controllers
         public async Task<IActionResult> GetDoctorBySpecicalty(int id)
         {
             var users = await _appointmentService.GetAllUsersAsync(id);
-            return Ok(users);
+            return Ok(users ?? new List<DoctorSpecialtyResponse>());
         }
     }
 

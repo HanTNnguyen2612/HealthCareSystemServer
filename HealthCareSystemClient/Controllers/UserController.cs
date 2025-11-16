@@ -5,6 +5,7 @@ using BusinessObjects.DataTransferObjects.AuthDTOs;
 using BusinessObjects.Domain;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http.Json;
 
 namespace HealthCareSystemClient.Controllers
@@ -110,28 +111,43 @@ namespace HealthCareSystemClient.Controllers
         [HttpGet]
         public async Task<IActionResult> GetDoctorsBySpecialty(int specialtyId)
         {
-
-            var client = _httpClientFactory.CreateClient("healthcaresystemapi");
-            var userId = HttpContext.Session.GetInt32("UserId");
-            var response = await client.GetAsync($"api/Appointment/spe/{specialtyId}");
-            if (!response.IsSuccessStatusCode) return View(new List<AppointmentResponse>());
-            var doctors = await response.Content.ReadFromJsonAsync<List<DoctorSpecialtyResponse>>();
-            // Gọi hàm async nếu có
-            //var doctors = await _doctorService.GetBySpecialtyAsync(specialtyId);
-
-            var doctorViewModels = doctors.Select(d => new DoctorViewModel
+            try
             {
-                UserId = d.UserId,
-                FullName = d.FullName ?? "Unknown",
-                SpecialtyId = d.SpecialtyId,
-                SpecialtyName = d.SpecialtyName ?? "Unknown",
-                Qualifications = d.Qualifications,
-                Experience = d.Experience,
-                Rating = d.Rating,
-                AvatarUrl =  "/images/default-doctor.png"
-            }).ToList();
+                var client = _httpClientFactory.CreateClient("healthcaresystemapi");
+                var response = await client.GetAsync($"api/Appointment/spe/{specialtyId}");
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogError($"Failed to get doctors for specialty {specialtyId}. Status: {response.StatusCode}");
+                    return PartialView("_DoctorOptions", new List<DoctorViewModel>());
+                }
 
-            return PartialView("_DoctorOptions", doctorViewModels);
+                var doctors = await response.Content.ReadFromJsonAsync<List<DoctorSpecialtyResponse>>();
+                
+                if (doctors == null || !doctors.Any())
+                {
+                    return PartialView("_DoctorOptions", new List<DoctorViewModel>());
+                }
+
+                var doctorViewModels = doctors.Select(d => new DoctorViewModel
+                {
+                    UserId = d.UserId,
+                    FullName = d.FullName ?? "Unknown",
+                    SpecialtyId = d.SpecialtyId,
+                    SpecialtyName = d.SpecialtyName ?? "Unknown",
+                    Qualifications = d.Qualifications,
+                    Experience = d.Experience,
+                    Rating = d.Rating,
+                    AvatarUrl = d.AvatarUrl ?? "/images/default-doctor.png"
+                }).ToList();
+
+                return PartialView("_DoctorOptions", doctorViewModels);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error getting doctors for specialty {specialtyId}");
+                return PartialView("_DoctorOptions", new List<DoctorViewModel>());
+            }
         }
         [HttpGet]
         public async Task<IActionResult> GetAvailableTimeSlots(int doctorId, DateTime date)

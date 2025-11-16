@@ -119,20 +119,20 @@ namespace DataAccessObjects.DAO
         {
             var users = await _context.Users
                 .Include(u => u.Doctor)
-                .Where(u => u.Doctor.SpecialtyId != null && u.Doctor.SpecialtyId == specialtyid)
+                    .ThenInclude(d => d.Specialty)
+                .Where(u => u.Doctor != null && u.Doctor.SpecialtyId != null && u.Doctor.SpecialtyId == specialtyid)
                 .Select(Specialty => new DoctorSpecialtyResponse
                 {
                     UserId = Specialty.UserId,
                     FullName = Specialty.FullName,
                     AvatarUrl = Specialty.AvatarUrl,
                     SpecialtyId = Specialty.Doctor.SpecialtyId,
-                    SpecialtyName = Specialty.Doctor.Specialty!.Name,
+                    SpecialtyName = Specialty.Doctor.Specialty != null ? Specialty.Doctor.Specialty.Name : "Unknown",
                     Qualifications = Specialty.Doctor.Qualifications,
                     Experience = Specialty.Doctor.Experience,
                     Rating = Specialty.Doctor.Rating
                 }).ToListAsync();
-            if (users == null) return null;
-            return users;
+            return users ?? new List<DoctorSpecialtyResponse>();
         }
     }
 }
