@@ -102,7 +102,7 @@ namespace HealthCareSystemClient.Controllers
             // Add appointment data to ViewBag for the appointments list
             ViewBag.UpcomingAppointments = GetUpcomingAppointments(userAppointments);
             ViewBag.PastAppointments = GetStatusAppointments(userAppointments, "Completed");
-            ViewBag.PastAppointments = GetStatusAppointments(userAppointments, "Cancelled");
+            ViewBag.CancelledAppointments = GetStatusAppointments(userAppointments, "Cancelled");
 
             return View(model);
         }
@@ -328,18 +328,33 @@ namespace HealthCareSystemClient.Controllers
                 //    return RedirectToAction("Appointments");
                 //}
 
-                var appointment = new Appointment
+                //var appointment = new Appointment
+                //{
+                //    PatientUserId = currentUserId.Value,
+                //    DoctorUserId = model.DoctorUserId,
+                //    AppointmentDateTime = appointmentDateTime,
+                //    Status = "Pending",
+                //    Notes = model.Notes,
+                //    CreatedAt = DateTime.Now,
+                //    UpdatedAt = DateTime.Now
+                //};
+                //await _appointmentService.AddAppointmentAsync(appointment);          -------------------------------------------------------------------------------------------
+
+
+                var appointmentrequest = new AppointmentAddRequest
                 {
                     PatientUserId = currentUserId.Value,
-                    DoctorUserId = model.DoctorUserId,
+                    DoctorUserId  = model.DoctorUserId,
                     AppointmentDateTime = appointmentDateTime,
-                    Status = "Pending",
-                    Notes = model.Notes,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    Notes = model.Notes
                 };
-
-                //await _appointmentService.AddAppointmentAsync(appointment);          -------------------------------------------------------------------------------------------
+                var client = _httpClientFactory.CreateClient("healthcaresystemapi");
+                var responsespecialy = await client.PostAsJsonAsync($"api/Appointment", appointmentrequest);
+                if (!responsespecialy.IsSuccessStatusCode)
+                {
+                    TempData["Error"] = "Failed to book appointment. Please try again.";
+                    return RedirectToAction("Appointments");
+                }
                 TempData["Success"] = "Appointment booked successfully!";
                 return RedirectToAction("Appointments");
             }
@@ -402,7 +417,7 @@ namespace HealthCareSystemClient.Controllers
 
             var client = _httpClientFactory.CreateClient("healthcaresystemapi");
             var apointmentdetail = await client.GetAsync($"api/Appointment/{id}");
-            if (!apointmentdetail.IsSuccessStatusCode) return View(new List<Specialty>());
+            if (!apointmentdetail.IsSuccessStatusCode) return View(new AppointmentResponse());
             var appointment = await apointmentdetail.Content.ReadFromJsonAsync<AppointmentResponse>();
 
 
@@ -414,7 +429,7 @@ namespace HealthCareSystemClient.Controllers
             }
 
             // Check if appointment can be rescheduled (not past date, not completed/cancelled)
-            if (appointment.AppointmentDateTime <= DateTime.Now ||
+            if (
                 appointment.Status == "Completed" ||
                 appointment.Status == "Cancelled")
             {
@@ -493,11 +508,25 @@ namespace HealthCareSystemClient.Controllers
                 }
 
                 // Update appointment
-                appointment.AppointmentDateTime = newAppointmentDateTime;
-                appointment.Notes = model.Notes;
-                appointment.UpdatedAt = DateTime.Now;
-
+                //appointment.AppointmentDateTime = newAppointmentDateTime;
+                //appointment.Notes = model.Notes;
+                //appointment.UpdatedAt = DateTime.Now;
                 //await _appointmentService.UpdateAppointmentAsync(appointment);          -------------------------------------------------------------------------------------------
+                var updaterequest = new AppoimentUpdateRequest
+                {
+                        PatientUserId  = appointment.patientid,
+                        DoctorUserId = appointment.doctorid,
+                        AppointmentDateTime = newAppointmentDateTime,
+                        Status = appointment.Status,
+                        CreatedAt = appointment.CreatedAt,
+                        Notes = model.Notes
+                };
+                var responseupdate = await client.PutAsJsonAsync($"api/Appointment/{id}", updaterequest);
+                if (!responseupdate.IsSuccessStatusCode)
+                {
+                    TempData["Error"] = "Failed to reschedule appointment. Please try again.";
+                    return RedirectToAction("Appointments");
+                }
                 TempData["Success"] = "Appointment rescheduled successfully!";
                 return RedirectToAction("Appointments");
             }
@@ -536,10 +565,16 @@ namespace HealthCareSystemClient.Controllers
 
             try
             {
-                appointment.Status = "Cancelled";
-                appointment.UpdatedAt = DateTime.Now;
+                //appointment.Status = "Cancelled";
+                //appointment.UpdatedAt = DateTime.Now;
 
                 //await _appointmentService.UpdateAppointmentAsync(appointment); ----------------------------------------------------------------------------------------------------
+                var isdelete = await client.DeleteAsync($"api/Appointment/{id}");
+                if (!isdelete.IsSuccessStatusCode)
+                {
+                    TempData["Error"] = "Failed to cancel appointment. Please try again.";
+                    return RedirectToAction("Appointments");
+                }
                 TempData["Success"] = "Appointment cancelled successfully.";
                 return RedirectToAction("Appointments");
             }
