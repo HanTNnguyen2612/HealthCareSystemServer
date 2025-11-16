@@ -1,0 +1,23 @@
+@using BusinessObjects.DataTransferObjects.AppointmentDTOs
+@model List<TimeSlotViewModel>
+
+@if (Model != null && Model.Any())
+{
+    <option value="">Choose a time slot</option>
+    @foreach (var timeSlot in Model)
+    {
+        if (timeSlot.IsAvailable)
+        {
+            <option value="@timeSlot.Time">@timeSlot.DisplayTime</option>
+        }
+        else
+        {
+            <option value="@timeSlot.Time" disabled>@timeSlot.DisplayTime (Unavailable)</option>
+        }
+    }
+}
+else
+{
+    <option value="">No time slots available</option>
+}
+
