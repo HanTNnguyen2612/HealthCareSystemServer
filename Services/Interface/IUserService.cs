@@ -1,4 +1,5 @@
-﻿using BusinessObjects.DataTransferObjects.UserDTOs;
+﻿using BusinessObjects.DataTransferObjects.AppointmentDTOs;
+using BusinessObjects.DataTransferObjects.UserDTOs;
 using BusinessObjects.Domain;
 using System;
 using System.Collections.Generic;
@@ -12,6 +13,7 @@ namespace Services.Interface
     {
         Task<User?> GetUserByEmail(string email);
         Task<User?> CreateUserAsync(User user);
+        
         Task<User?> UpdateUserAsync(string email, UserUpdateRequest request);
         Task<bool> ChangePasswordAsync(string email, ChangePasswordRequest request);
         Task<bool> BanOrUnBanUserAsync(string email);

@@ -72,6 +72,7 @@ builder.Services.AddScoped<DoctorDAO>();
 builder.Services.AddScoped<AppointmentDAO>();
 builder.Services.AddScoped<ConversationDAO>();
 builder.Services.AddScoped<MessageDAO>();
+builder.Services.AddScoped<UserDAO>();
 
 // ------------------ SignalR ----------------------
 builder.Services.AddSignalR();
