@@ -1,7 +1,7 @@
 ﻿// Multi-step signup form functionality
 let currentStep = 1
 const totalSteps = 3
-let selectedRole = ""
+let selectedRole = "Patient" // Default role is Patient
 
 document.addEventListener("DOMContentLoaded", () => {
     initializeForm()
@@ -108,17 +108,35 @@ function nextStep() {
                 currentStep = 3
                 showStep(3)
                 updateProgressBar()
-                processSignup()
+                // Submit form when reaching step 3
+                submitForm()
             } else {
                 currentStep++
                 showStep(currentStep)
                 updateProgressBar()
-
+                
+                // Submit form when reaching step 3 (final step)
                 if (currentStep === 3) {
-                    processSignup()
+                    submitForm()
                 }
             }
         }
+    } else {
+        // Validation failed - scroll to first error field
+        const currentStepEl = document.getElementById(`step${currentStep}`)
+        const firstError = currentStepEl.querySelector(".is-invalid")
+        if (firstError) {
+            firstError.scrollIntoView({ behavior: "smooth", block: "center" })
+            firstError.focus()
+        }
+    }
+}
+
+function submitForm() {
+    const form = document.getElementById("multiStepSignupForm")
+    if (form) {
+        // Trigger form submit
+        form.submit()
     }
 }
 
@@ -146,6 +164,13 @@ function showStep(step) {
     const currentStepEl = document.getElementById(`step${step}`)
     if (currentStepEl) {
         currentStepEl.classList.add("active")
+        // Scroll to top of form container
+        const formContainer = document.querySelector(".signup-form-container")
+        if (formContainer) {
+            formContainer.scrollIntoView({ behavior: "smooth", block: "start" })
+        }
+    } else {
+        console.error(`Step ${step} element not found`)
     }
 }
 
@@ -171,10 +196,21 @@ function updateProgressBar() {
 
 function validateCurrentStep() {
     const currentStepEl = document.getElementById(`step${currentStep}`)
+    if (!currentStepEl) {
+        console.error(`Step ${currentStep} element not found`)
+        return false
+    }
+    
     const requiredFields = currentStepEl.querySelectorAll("[required]")
     let isValid = true
 
+    // Validate each required field
     requiredFields.forEach((field) => {
+        // Skip validation for hidden or disabled fields
+        if (field.offsetParent === null || field.disabled) {
+            return
+        }
+        
         if (!validateField({ target: field })) {
             isValid = false
         }
@@ -183,18 +219,23 @@ function validateCurrentStep() {
     // Additional validation for step 1
     if (currentStep === 1) {
         // Validate password match
-        const password = document.getElementById("password").value
-        const confirmPassword = document.getElementById("confirmPassword").value
+        const password = document.getElementById("password")
+        const confirmPassword = document.getElementById("confirmPassword")
+        
+        if (password && confirmPassword) {
+            const passwordValue = password.value
+            const confirmPasswordValue = confirmPassword.value
 
-        if (password !== confirmPassword) {
-            showFieldError(document.getElementById("confirmPassword"), "Passwords do not match.")
-            isValid = false
+            if (passwordValue && confirmPasswordValue && passwordValue !== confirmPasswordValue) {
+                showFieldError(confirmPassword, "Passwords do not match.")
+                isValid = false
+            }
         }
 
-        // Validate role selection
-        if (!selectedRole) {
-            const roleContainer = document.querySelector(".role-selection")
-            roleContainer.classList.add("is-invalid")
+        // Validate terms checkbox
+        const termsCheckbox = document.getElementById("terms")
+        if (termsCheckbox && !termsCheckbox.checked) {
+            showFieldError(termsCheckbox, "You must agree to the terms and conditions.")
             isValid = false
         }
     }
@@ -204,16 +245,36 @@ function validateCurrentStep() {
 
 function validateField(event) {
     const field = event.target
-    const value = field.value.trim()
+    let value = ""
+    
+    // Handle different field types
+    if (field.type === "checkbox") {
+        value = field.checked ? "checked" : ""
+    } else {
+        value = field.value ? field.value.trim() : ""
+    }
+    
     let isValid = true
 
     // Clear previous validation
     clearValidation(event)
 
     // Required field validation
-    if (field.hasAttribute("required") && !value) {
-        showFieldError(field, "This field is required.")
-        isValid = false
+    if (field.hasAttribute("required")) {
+        if (field.type === "checkbox") {
+            if (!field.checked) {
+                showFieldError(field, "This field is required.")
+                isValid = false
+            }
+        } else if (!value) {
+            showFieldError(field, "This field is required.")
+            isValid = false
+        }
+    }
+
+    // Only validate format if field has value
+    if (!value && !field.hasAttribute("required")) {
+        return true // Optional field with no value is valid
     }
 
     // Email validation
@@ -235,9 +296,19 @@ function validateField(event) {
 
     // Phone validation
     if (field.type === "tel" && value) {
-        const phoneRegex = /^[+]?[1-9][\d]{0,15}$/
-        if (!phoneRegex.test(value.replace(/[\s\-$$$$]/g, ""))) {
-            showFieldError(field, "Please enter a valid phone number.")
+        const phoneRegex = /^0\d{9}$/
+        if (!phoneRegex.test(value.replace(/[\s\-]/g, ""))) {
+            showFieldError(field, "Please enter a valid phone number (10 digits starting with 0).")
+            isValid = false
+        }
+    }
+
+    // Date validation
+    if (field.type === "date" && value) {
+        const selectedDate = new Date(value)
+        const today = new Date()
+        if (selectedDate > today) {
+            showFieldError(field, "Date of birth cannot be in the future.")
             isValid = false
         }
     }
@@ -249,7 +320,36 @@ function clearValidation(event) {
     const field = event.target
     field.classList.remove("is-invalid")
 
-    const feedback = field.parentNode.querySelector(".invalid-feedback")
+    // For checkbox/radio, remove invalid class from parent container
+    if (field.type === "checkbox" || field.type === "radio") {
+        const formCheck = field.closest(".form-check")
+        if (formCheck) {
+            formCheck.classList.remove("is-invalid")
+        }
+    }
+
+    // Find and hide invalid-feedback
+    let feedback = null
+    
+    if (field.type === "checkbox" || field.type === "radio") {
+        const formCheck = field.closest(".form-check")
+        if (formCheck) {
+            feedback = formCheck.querySelector(".invalid-feedback")
+        }
+    }
+    
+    if (!feedback) {
+        feedback = field.parentNode.querySelector(".invalid-feedback")
+    }
+    
+    if (!feedback && field.nextElementSibling && field.nextElementSibling.classList.contains("invalid-feedback")) {
+        feedback = field.nextElementSibling
+    }
+    
+    if (!feedback && field.parentNode.parentNode) {
+        feedback = field.parentNode.parentNode.querySelector(".invalid-feedback")
+    }
+    
     if (feedback) {
         feedback.style.display = "none"
     }
@@ -257,17 +357,72 @@ function clearValidation(event) {
     // Clear role selection validation
     if (field.name === "role") {
         const roleContainer = document.querySelector(".role-selection")
-        roleContainer.classList.remove("is-invalid")
+        if (roleContainer) {
+            roleContainer.classList.remove("is-invalid")
+        }
     }
 }
 
 function showFieldError(field, message) {
     field.classList.add("is-invalid")
 
-    const feedback = field.parentNode.querySelector(".invalid-feedback")
+    // For checkbox/radio, add invalid class to parent container
+    if (field.type === "checkbox" || field.type === "radio") {
+        const formCheck = field.closest(".form-check")
+        if (formCheck) {
+            formCheck.classList.add("is-invalid")
+        }
+    }
+
+    // Find invalid-feedback element - could be sibling or in parent
+    let feedback = null
+    
+    // For checkbox/radio, look in form-check container
+    if (field.type === "checkbox" || field.type === "radio") {
+        const formCheck = field.closest(".form-check")
+        if (formCheck) {
+            feedback = formCheck.querySelector(".invalid-feedback")
+        }
+    }
+    
+    // If not found, check parent node
+    if (!feedback) {
+        feedback = field.parentNode.querySelector(".invalid-feedback")
+    }
+    
+    // If not found in parent, check if it's a sibling
+    if (!feedback && field.nextElementSibling && field.nextElementSibling.classList.contains("invalid-feedback")) {
+        feedback = field.nextElementSibling
+    }
+    
+    // If still not found, check parent's parent (for input groups)
+    if (!feedback && field.parentNode.parentNode) {
+        feedback = field.parentNode.parentNode.querySelector(".invalid-feedback")
+    }
+    
     if (feedback) {
         feedback.textContent = message
         feedback.style.display = "block"
+    } else {
+        // Create feedback element if it doesn't exist
+        feedback = document.createElement("div")
+        feedback.className = "invalid-feedback"
+        feedback.textContent = message
+        feedback.style.display = "block"
+        
+        // Insert after the field or its container
+        if (field.type === "checkbox" || field.type === "radio") {
+            const formCheck = field.closest(".form-check")
+            if (formCheck) {
+                formCheck.appendChild(feedback)
+            } else {
+                field.parentNode.appendChild(feedback)
+            }
+        } else if (field.parentNode.classList.contains("input-group") || field.parentNode.classList.contains("password-input-container")) {
+            field.parentNode.parentNode.insertBefore(feedback, field.parentNode.nextSibling)
+        } else {
+            field.parentNode.appendChild(feedback)
+        }
     }
 }
 
@@ -389,24 +544,6 @@ function togglePassword(fieldId) {
         icon.classList.remove("fa-eye-slash")
         icon.classList.add("fa-eye")
     }
-}
-
-function processSignup() {
-    // Simulate account creation
-    setTimeout(() => {
-        // Collect form data
-        const formData = new FormData(document.getElementById("multiStepSignupForm"))
-        const userData = Object.fromEntries(formData.entries())
-
-        // Store user data (in real app, this would be sent to server)
-        localStorage.setItem("isLoggedIn", "true")
-        localStorage.setItem("userEmail", userData.email)
-        localStorage.setItem("userName", `${userData.firstName} ${userData.lastName}`)
-        localStorage.setItem("userRole", selectedRole)
-        localStorage.setItem("userData", JSON.stringify(userData))
-
-        console.log("User registered:", userData)
-    }, 1000)
 }
 
 function goToDashboard() {

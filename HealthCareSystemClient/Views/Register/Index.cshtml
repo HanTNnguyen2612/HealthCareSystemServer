@@ -36,7 +36,34 @@
 
                 <!-- Form Container -->
                 <div class="signup-form-container">
-                    <form id="multiStepSignupForm">
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <strong>Thành công!</strong> @TempData["SuccessMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                        <div class="text-center mt-4">
+                            <a asp-controller="Login" asp-action="Index" class="btn btn-primary btn-lg">
+                                Đăng nhập ngay <i class="fas fa-arrow-right ms-2"></i>
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        @if (!ViewData.ModelState.IsValid)
+                        {
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <strong>Lỗi:</strong>
+                                <ul class="mb-0">
+                                    @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                                    {
+                                        <li>@error.ErrorMessage</li>
+                                    }
+                                </ul>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        }
+                        <form id="multiStepSignupForm" asp-controller="Register" asp-action="Register" method="post">
                         <!-- Step 1: Basic Information -->
                         <div class="signup-step active" id="step1">
                             <div class="step-header">
@@ -82,40 +109,9 @@
                                             <option value="">Select Gender</option>
                                             <option value="male">Male</option>
                                             <option value="female">Female</option>
-                                            <option value="other">Other</option>
-                                            <option value="prefer-not-to-say">Prefer not to say</option>
                                         </select>
                                         <div class="invalid-feedback">Please select your gender.</div>
                                     </div>
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label">I am a: *</label>
-                                    <div class="role-selection">
-                                        <div class="role-card" data-role="patient">
-                                            <div class="role-icon">
-                                                <i class="fas fa-user"></i>
-                                            </div>
-                                            <h6>Patient</h6>
-                                            <p>Looking for medical care and consultations</p>
-                                            <div class="role-radio">
-                                                <input type="radio" id="rolePatient" name="role" value="patient" required>
-                                                <label for="rolePatient"></label>
-                                            </div>
-                                        </div>
-                                        <div class="role-card" data-role="doctor">
-                                            <div class="role-icon">
-                                                <i class="fas fa-user-md"></i>
-                                            </div>
-                                            <h6>Doctor</h6>
-                                            <p>Medical professional providing healthcare services</p>
-                                            <div class="role-radio">
-                                                <input type="radio" id="roleDoctor" name="role" value="doctor" required>
-                                                <label for="roleDoctor"></label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="invalid-feedback">Please select your role.</div>
                                 </div>
 
                                 <div class="row">
@@ -290,8 +286,8 @@
                                 <div class="success-icon">
                                     <i class="fas fa-check-circle"></i>
                                 </div>
-                                <h3>Account Created Successfully!</h3>
-                                <p class="text-secondary">Welcome to HealthCare Plus. Your account has been created and you can now access all our services.</p>
+                                <h3>Đang tạo tài khoản...</h3>
+                                <p class="text-secondary">Vui lòng đợi trong giây lát.</p>
 
                                 <div class="next-steps">
                                     <h6>What's Next?</h6>
@@ -301,18 +297,12 @@
                                         <li><i class="fas fa-comments text-primary"></i> Start a conversation with our AI assistant</li>
                                     </ul>
                                 </div>
-
-                                <div class="completion-actions">
-                                    <button type="button" class="btn btn-primary btn-lg" onclick="goToDashboard()">
-                                        Go to Dashboard <i class="fas fa-arrow-right ms-2"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-outline-primary btn-lg ms-3" onclick="completeProfile()">
-                                        Complete Profile
-                                    </button>
-                                </div>
                             </div>
+                            <!-- Hidden submit button -->
+                            <button type="submit" id="formSubmitButton" style="display: none;"></button>
                         </div>
                     </form>
+                    }
                 </div>
 
                 <!-- Footer -->
@@ -329,3 +319,4 @@
         </div>
     </div>
 </div>
+<script src="~/js/register/register.js"></script>

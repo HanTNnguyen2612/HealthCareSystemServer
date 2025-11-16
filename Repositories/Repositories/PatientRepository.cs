@@ -23,5 +23,8 @@ namespace Repositories.Repositories
 
         public Task UpdatePatientAsync(Patient patient)
             => _patientDAO.UpdatePatientAsync(patient);
+
+        public Task<Patient?> CreatePatientAsync(Patient patient)
+            => _patientDAO.CreatePatientAsync(patient);
     }
 }

@@ -29,5 +29,12 @@ namespace DataAccessObjects.DAO
             _context.Patients.Update(patient);
             await _context.SaveChangesAsync();
         }
+
+        public async Task<Patient?> CreatePatientAsync(Patient patient)
+        {
+            await _context.Patients.AddAsync(patient);
+            await _context.SaveChangesAsync();
+            return patient;
+        }
     }
 }
