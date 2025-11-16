@@ -80,4 +80,17 @@ namespace BusinessObjects.DataTransferObjects.AppointmentDTOs
         public string DoctorAvatarUrl { get; set; }
         public DateTime CreatedAt { get; set; }
     }
+
+
+    public class IsTimeSlotBook3Request
+    {
+        public int DoctorId { get; set; }
+        public DateTime AppointmentDate { get; set; }
+        public  int excludeAppointmentId { get; set; }
+    }
+    public class IsTimeSlotBook2Request
+    {
+        public int DoctorId { get; set; }
+        public DateTime AppointmentDate { get; set; }
+    }
 }

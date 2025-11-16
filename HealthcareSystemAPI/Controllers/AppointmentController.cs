@@ -25,7 +25,7 @@ namespace HealthcareSystemAPI.Controllers
         }
 
 
-        [HttpGet("{id:int}")]
+        [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
             var appointment = await _appointmentService.GetByIdAsync(id);
@@ -124,6 +124,27 @@ namespace HealthcareSystemAPI.Controllers
             var result = await _appointmentService.GetAllSpecialtiesAsync();
             if (result == null) return NotFound(new { message = "Appointment not found" });
             return Ok(result);
+        }
+
+        [HttpPost("timeslot3")]
+        public async Task<IActionResult> IsTimeSlotBook3([FromBody] IsTimeSlotBook3Request dto)
+        {
+            var result = await _appointmentService.IsTimeSlotBookedAsync(dto.DoctorId , dto.AppointmentDate , dto.excludeAppointmentId);
+            return Ok(result);
+        }
+        [HttpPost("timeslot2")]
+        public async Task<IActionResult> IsTimeSlotBook2([FromBody] IsTimeSlotBook2Request dto)
+        {
+            var result = await _appointmentService.IsTimeSlotBookedAsync(dto.DoctorId, dto.AppointmentDate);
+            return Ok(result);
+        }
+
+
+        [HttpGet("spe/{id}")]
+        public async Task<IActionResult> GetDoctorBySpecicalty(int id)
+        {
+            var users = await _appointmentService.GetAllUsersAsync(id);
+            return Ok(users);
         }
     }
 

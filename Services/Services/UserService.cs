@@ -1,5 +1,7 @@
-﻿using BusinessObjects.DataTransferObjects.UserDTOs;
+﻿using BusinessObjects.DataTransferObjects.AppointmentDTOs;
+using BusinessObjects.DataTransferObjects.UserDTOs;
 using BusinessObjects.Domain;
+using DataAccessObjects.DAO;
 using Repositories.Interface;
 using Services.Interface;
 using System;
@@ -14,9 +16,12 @@ namespace Services.Services
     {
         private readonly IUserRepository _repository;
 
-        public UserService(IUserRepository repository)
+        private readonly AppointmentDAO _dao;
+
+        public UserService(IUserRepository repository , AppointmentDAO dao )
         {
             _repository = repository;
+            _dao = dao;
         }
 
         public async Task<bool> BanOrUnBanUserAsync(string email)
@@ -43,5 +48,7 @@ namespace Services.Services
         {            
             return await _repository.UpdateUserAsync(email, request);
         }
+
+       
     }
 }

@@ -1,5 +1,6 @@
 ﻿using BusinessObjects.DataTransferObjects.AppointmentDTOs;
 using BusinessObjects.Domain;
+using Microsoft.EntityFrameworkCore;
 using Services.Interface;
 using System;
 using System.Collections.Generic;
@@ -15,6 +16,8 @@ namespace Services.Services
         private readonly DataAccessObjects.DAO.AppointmentDAO _appointmentDAO;
         private readonly IDoctorService _doctorService;
         private readonly IPatientService _patientService;
+
+
 
         public AppointmentService(DataAccessObjects.DAO.AppointmentDAO appointmentDAO, IDoctorService doctorService, IPatientService patientService)
         {
@@ -33,6 +36,8 @@ namespace Services.Services
 
                 results.Add(new AppointmentResponse
                 {
+                    doctorid = appointment.DoctorUserId,
+                    patientid = appointment.PatientUserId,
                     AppointmentId = appointment.AppointmentId,
                     DoctorName = doctor.FullName,
                     PatientName = patient.FullName,
@@ -54,6 +59,8 @@ namespace Services.Services
             var patient = await _patientService.GetPatientProfileAsync(appointment.PatientUserId);
             return new AppointmentResponse
             {
+                doctorid = appointment.DoctorUserId,
+                patientid = appointment.PatientUserId,
                 AppointmentId = appointment.AppointmentId,
                 DoctorName = doctor.FullName,
                 PatientName = patient.FullName,
@@ -75,6 +82,8 @@ namespace Services.Services
             var patient = await _patientService.GetPatientProfileAsync(appointment.PatientUserId);
             return new AppointmentResponse
             {
+                doctorid = appointment.DoctorUserId,
+                patientid = appointment.PatientUserId,
                 AppointmentId = appointment.AppointmentId,
                 DoctorName = doctor.FullName,
                 PatientName = patient.FullName,
@@ -105,6 +114,8 @@ namespace Services.Services
             var patient = await _patientService.GetPatientProfileAsync(createdAppointment.PatientUserId);
             return new AppointmentResponse
             {
+                doctorid = appointment.DoctorUserId,
+                patientid = appointment.PatientUserId,
                 AppointmentId = createdAppointment.AppointmentId,
                 DoctorName = doctor.FullName,
                 PatientName = patient.FullName,
@@ -134,6 +145,8 @@ namespace Services.Services
             var patient = await _patientService.GetPatientProfileAsync(updatedAppointment.PatientUserId);
             return new AppointmentResponse
             {
+                doctorid = appointment.DoctorUserId,
+                patientid = appointment.PatientUserId,
                 AppointmentId = updatedAppointment.AppointmentId,
                 DoctorName = doctor.FullName,
                 PatientName = patient.FullName,
@@ -164,6 +177,8 @@ namespace Services.Services
 
                 results.Add(new AppointmentResponse
                 {
+                    doctorid = appointment.DoctorUserId,
+                    patientid = appointment.PatientUserId,
                     AppointmentId = appointment.AppointmentId,
                     DoctorName = doctor.FullName,
                     PatientName = patient.FullName,
@@ -216,6 +231,8 @@ namespace Services.Services
 
                     results.Add(new AppointmentResponse
                     {
+                        doctorid = appointment.DoctorUserId,
+                        patientid = appointment.PatientUserId,
                         AppointmentId = appointment.AppointmentId,
                         DoctorName = doctor.FullName,
                         PatientName = patient.FullName,
@@ -244,6 +261,8 @@ namespace Services.Services
 
                     results.Add(new AppointmentResponse
                     {
+                        doctorid = appointment.DoctorUserId,
+                        patientid = appointment.PatientUserId,
                         AppointmentId = appointment.AppointmentId,
                         DoctorName = doctor.FullName,
                         PatientName = patient.FullName,
@@ -266,5 +285,20 @@ namespace Services.Services
         }
 
 
+
+        public async Task<bool> IsTimeSlotBookedAsync(int doctorId, DateTime dateTime)
+        {
+            return await _appointmentDAO.IsTimeSlotBookedAsync(doctorId, dateTime);
+        }
+
+        public async Task<bool> IsTimeSlotBookedAsync(int doctorId, DateTime dateTime, int excludeAppointmentId)
+        {
+            return await _appointmentDAO.IsTimeSlotBookedAsync(doctorId, dateTime, excludeAppointmentId);
+        }
+
+        public async Task<List<DoctorSpecialtyResponse>> GetAllUsersAsync(int specialtyid)
+        {
+            return await _appointmentDAO.GetAllUsersAsync(specialtyid);
+        }
     }
 }

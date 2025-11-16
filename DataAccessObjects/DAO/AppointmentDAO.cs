@@ -1,4 +1,5 @@
-﻿using BusinessObjects.Domain;
+﻿using BusinessObjects.DataTransferObjects.AppointmentDTOs;
+using BusinessObjects.Domain;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -89,7 +90,49 @@ namespace DataAccessObjects.DAO
         public async Task<List<Specialty?>> GetAllSpecialtiesAsync()
         {
             var result = await _context.Specialties.ToListAsync();
+            if (result == null) return null;
             return result;
+        }
+
+
+
+
+        public async Task<bool> IsTimeSlotBookedAsync(int doctorId, DateTime dateTime)
+        {
+            return await _context.Appointments.AnyAsync(a =>
+                a.DoctorUserId == doctorId &&
+                a.AppointmentDateTime == dateTime &&
+                a.Status != "Cancelled");
+        }
+
+        public async Task<bool> IsTimeSlotBookedAsync(int doctorId, DateTime dateTime, int excludeAppointmentId)
+        {
+            return await _context.Appointments.AnyAsync(a =>
+                a.DoctorUserId == doctorId &&
+                a.AppointmentDateTime == dateTime &&
+                a.Status != "Cancelled" &&
+                a.AppointmentId != excludeAppointmentId);
+        }
+
+
+        public async Task<List<DoctorSpecialtyResponse>> GetAllUsersAsync(int specialtyid)
+        {
+            var users = await _context.Users
+                .Include(u => u.Doctor)
+                .Where(u => u.Doctor.SpecialtyId != null && u.Doctor.SpecialtyId == specialtyid)
+                .Select(Specialty => new DoctorSpecialtyResponse
+                {
+                    UserId = Specialty.UserId,
+                    FullName = Specialty.FullName,
+                    AvatarUrl = Specialty.AvatarUrl,
+                    SpecialtyId = Specialty.Doctor.SpecialtyId,
+                    SpecialtyName = Specialty.Doctor.Specialty!.Name,
+                    Qualifications = Specialty.Doctor.Qualifications,
+                    Experience = Specialty.Doctor.Experience,
+                    Rating = Specialty.Doctor.Rating
+                }).ToListAsync();
+            if (users == null) return null;
+            return users;
         }
     }
 }
