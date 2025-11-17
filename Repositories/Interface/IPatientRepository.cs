@@ -1,0 +1,16 @@
+﻿using BusinessObjects.Domain;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Repositories.Interface
+{
+    public interface IPatientRepository
+    {
+        Task<Patient?> GetPatientByUserIdAsync(int userId);
+        Task UpdatePatientAsync(Patient patient);
+        Task<Patient?> CreatePatientAsync(Patient patient);
+    }
+}

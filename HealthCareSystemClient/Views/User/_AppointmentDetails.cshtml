@@ -1,0 +1,56 @@
+﻿@model BusinessObjects.DataTransferObjects.AppointmentDTOs.AppointmentViewModel
+
+<div class="appointment-details-modal">
+    <div class="appointment-info-header">
+        <div class="doctor-profile">
+            <img src="@(string.IsNullOrEmpty(Model.DoctorAvatarUrl) ? "/images/default-doctor.png" : Model.DoctorAvatarUrl)"
+                 alt="Doctor" class="doctor-avatar-large">
+            <div class="doctor-details">
+                <h4>@Model.DoctorName</h4>
+                <p class="specialty">@Model.SpecialtyName</p>
+                <div class="status-badge status-@Model.Status.ToLower()">
+                    @Model.Status
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="appointment-info-body">
+        <div class="info-grid">
+            <div class="info-item">
+                <i class="fas fa-calendar-alt"></i>
+                <div>
+                    <label>Date & Time</label>
+                    <span>@Model.AppointmentDateTime.ToString("dddd, MMMM dd, yyyy 'at' HH:mm")</span>
+                </div>
+            </div>
+
+            <div class="info-item">
+                <i class="fas fa-user"></i>
+                <div>
+                    <label>Patient</label>
+                    <span>@Model.PatientName</span>
+                </div>
+            </div>
+
+            <div class="info-item">
+                <i class="fas fa-clock"></i>
+                <div>
+                    <label>Created</label>
+                    <span>@Model.CreatedAt.ToString("MMM dd, yyyy")</span>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.Notes))
+            {
+                <div class="info-item full-width">
+                    <i class="fas fa-notes-medical"></i>
+                    <div>
+                        <label>Reason for Visit</label>
+                        <span>@Model.Notes</span>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>

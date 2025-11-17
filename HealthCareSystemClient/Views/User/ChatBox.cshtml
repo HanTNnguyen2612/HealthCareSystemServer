@@ -1,0 +1,204 @@
+﻿@using HealthCareSystemClient.Models
+@model UserAIChatViewModel
+@{
+    Layout = "_LayoutUser";
+    ViewData["Title"] = "AI Assistant";
+    // KHAI BÁO BASE URL CỦA WEB API TẠI ĐÂY
+    var apiBaseUrl = "https://localhost:7293";
+}
+
+<script>
+    const API_BASE_URL = "@apiBaseUrl";
+    const CURRENT_USER_ID = @Model.UserId;
+</script>
+
+<div class="main-content">
+    <header class="header">
+        <h1 class="header-title">AI Health Assistant</h1>
+        <div class="header-actions">
+            <button class="notification-btn">
+                <i class="fas fa-bell"></i>
+                <span class="notification-badge">3</span>
+            </button>
+            <a asp-controller="User" asp-action="Profile" style="text-decoration: none;">
+                <div class="user-profile" onclick="window.location.href='profile.html'">
+                    <img src="@Model.AvatarUrl" alt="User" class="user-avatar">
+                    <div class="user-info">
+                        <p id="userId" style="display: none;">@Model.UserId</p>
+                        <h6>@Model.FullName</h6>
+                        <p>Patient</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </header>
+
+    <div class="content">
+        <div class="ai-chat-layout">
+            <div class="dashboard-card ai-chat-panel">
+                <div class="ai-chat-container">
+                    <div class="ai-chat-header">
+                        <div class="ai-assistant-info">
+                            <div class="ai-avatar">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div class="ai-details">
+                                <h6>HealthCare AI Assistant</h6>
+                                <p>Your personal health companion</p>
+                            </div>
+                        </div>
+                        <div class="ai-delete-btn">
+                            @* Dùng data attribute để lấy ID trong JS *@
+                            <button id="deleteAllBtn" data-user-id="@Model.UserId" class="btn btn-primary">Delete Chat History</button>
+                        </div>
+                    </div>
+
+                    <div class="ai-chat-messages" id="aiChatMessages">
+                        <div class="message ai-message">
+                            <div class="message-avatar">
+                                <div class="ai-avatar-small">
+                                    <i class="fas fa-robot"></i>
+                                </div>
+                            </div>
+                            <div class="message-content">
+                                <div class="message-header">
+                                    <span class="message-sender">AI Assistant</span>
+                                    <span class="message-time">Now</span>
+                                </div>
+                                <div class="message-text">
+                                    Hello! I'm your AI health assistant. I can help you with:
+                                    <ul>
+                                        <li>General health questions</li>
+                                        <li>Symptom assessment</li>
+                                        <li>Medication information</li>
+                                        <li>Wellness tips</li>
+                                        <li>Appointment scheduling</li>
+                                    </ul>
+                                    How can I assist you today?
+                                </div>
+                                <div class="ai-disclaimer">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    This AI assistant provides general information only and should not replace professional medical advice.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ai-chat-input-container">
+                        <form class="ai-chat-input-form" id="aiChatForm" onsubmit="sendAIMessage(event)">
+                            <div class="ai-chat-input-wrapper">
+                                <input type="text" class="ai-chat-input" id="aiMessageInput" placeholder="Ask me anything about your health...">
+                                <button type="button" class="ai-voice-btn" onclick="startVoiceInput()">
+                                    <i class="fas fa-microphone"></i>
+                                </button>
+                            </div>
+                            <button type="submit" class="ai-send-btn">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quick-questions-panel">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h5 class="card-title">AI Features</h5>
+                    </div>
+                    <div class="card-content">
+                        <div class="ai-features-list">
+                            <div class="ai-feature-item">
+                                <div class="feature-icon">
+                                    <i class="fas fa-stethoscope"></i>
+                                </div>
+                                <div class="feature-content">
+                                    <h6>Symptom Checker</h6>
+                                    <p>Describe your symptoms for preliminary assessment</p>
+                                </div>
+                            </div>
+                            <div class="ai-feature-item">
+                                <div class="feature-icon">
+                                    <i class="fas fa-pills"></i>
+                                </div>
+                                <div class="feature-content">
+                                    <h6>Medication Info</h6>
+                                    <p>Get information about medications and interactions</p>
+                                </div>
+                            </div>
+                            <div class="ai-feature-item">
+                                <div class="feature-icon">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <div class="feature-content">
+                                    <h6>Health Tracking</h6>
+                                    <p>Monitor your health metrics and trends</p>
+                                </div>
+                            </div>
+                            <div class="ai-feature-item">
+                                <div class="feature-icon">
+                                    <i class="fas fa-calendar-alt"></i>
+                                </div>
+                                <div class="feature-content">
+                                    <h6>Smart Scheduling</h6>
+                                    <p>AI-powered appointment recommendations</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-card recommended-doctors-card" id="recommendedDoctorsCard">
+                    <div class="card-header">
+                        <h5 class="card-title">Recommended Doctors</h5>
+                    </div>
+                    <div class="card-content">
+                        <div class="recommended-doctors-grid" id="recommendedDoctors">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    function deleteAllMessages(userId) {
+        // KIỂM TRA: Đảm bảo userId hợp lệ
+        if (!userId || userId <= 0) {
+            alert("Lỗi: Không tìm thấy ID người dùng để xóa lịch sử.");
+            return;
+        }
+
+        // 📢 SỬA LỖI URL 404: Ghép BASE URL chính xác
+        const deleteUrl = `${API_BASE_URL}/api/chatbox/messages/delete/${userId}`;
+        console.log("Gọi DELETE API:", deleteUrl);
+
+        $.ajax({
+            url: deleteUrl,
+            type: 'DELETE',
+            // Cần THÊM Access Token nếu API yêu cầu xác thực
+            // headers: {
+            //     'Authorization': 'Bearer ' + sessionStorage.getItem('AccessToken')
+            // },
+            success: function(response) {
+                alert("Đã xóa lịch sử chat thành công!");
+                $("#aiChatMessages").empty(); // Xóa tin nhắn khỏi giao diện
+            },
+            error: function(xhr, status, error) {
+                console.error("Lỗi xóa tin nhắn:", xhr.responseText || error);
+                alert("Xóa lịch sử thất bại. Vui lòng kiểm tra console.");
+            },
+        });
+    }
+
+    $(document).ready(function() {
+        // 📢 SỬA LỖI LOGIC NÚT XÓA
+        $("#deleteAllBtn").on("click", function() {
+            var userId = $(this).data('user-id'); // Lấy ID từ data attribute
+            deleteAllMessages(userId);
+        });
+    });
+</script>
+
+<script src="~/js/user/ai-chat.js"></script>

@@ -1,0 +1,399 @@
+﻿@model BusinessObjects.DataTransferObjects.AppointmentDTOs.AppointmentResponseDetails
+@{
+    Layout = "_LayoutDoctor";
+    ViewData["Title"] = "Appointment Details";
+}
+
+<!-- Main Content -->
+<div class="main-content">
+    <!-- Header -->
+    <header class="header">
+        <h1 class="header-title">Appointment Details</h1>
+        <div class="header-actions">
+            <a asp-action="Appointments" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i>
+                Back to Appointments
+            </a>
+            <button class="notification-btn">
+                <i class="fas fa-bell"></i>
+                <span class="notification-badge">5</span>
+            </button>
+            <div class="user-profile">
+                <img src="/placeholder.svg?height=32&width=32" alt="Doctor" class="user-avatar">
+                <div class="user-info">
+                    <h6 id="doctorName">Dr. Sarah Johnson</h6>
+                    <p>Cardiologist</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Content -->
+    <div class="content">
+        <div class="row">
+            <!-- Appointment Info -->
+            <div class="col-lg-8">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h5 class="card-title">Appointment Information</h5>
+                        <span class="badge bg-@(Model.Status switch { "Pending" => "warning", "Confirmed" => "success", "Completed" => "primary", "Cancelled" => "danger", _ => "secondary" }) fs-6">
+                            @Model.Status
+                        </span>
+                    </div>
+                    <div class="card-content">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="info-group">
+                                    <label>Date & Time</label>
+                                    <p><i class="fas fa-calendar-alt me-2"></i>@Model.AppointmentDateTime.ToString("dddd, MMMM dd, yyyy")</p>
+                                    <p><i class="fas fa-clock me-2"></i>@Model.AppointmentDateTime.ToString("HH:mm")</p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="info-group">
+                                    <label>Appointment ID</label>
+                                    <p>@Model.AppointmentId</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="info-group">
+                            <label>Notes/Reason for Visit</label>
+                            <p>@(Model.Notes ?? "No additional notes provided")</p>
+                        </div>
+
+                        <div class="info-group">
+                            <label>Created At</label>
+                            <p>@Model.CreatedAt?.ToString("MMM dd, yyyy HH:mm")</p>
+                        </div>
+
+                        @if (Model.UpdatedAt.HasValue)
+                        {
+                            <div class="info-group">
+                                <label>Last Updated</label>
+                                <p>@Model.UpdatedAt?.ToString("MMM dd, yyyy HH:mm")</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Actions Card -->
+                @if (Model.Status == "Pending")
+                {
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h5 class="card-title">Actions</h5>
+                        </div>
+                        <div class="card-content">
+                            <div class="action-buttons">
+                                <form asp-action="ApproveAppointment" method="post" style="display: inline;">
+                                    <input type="hidden" name="appointmentId" value="@Model.AppointmentId" />
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-check"></i> Approve Appointment
+                                    </button>
+                                </form>
+                                <button class="btn btn-danger" onclick="showRejectModal(@Model.AppointmentId)">
+                                    <i class="fas fa-times"></i> Reject Appointment
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else if (Model.Status == "Confirmed" && Model.AppointmentDateTime.Date == DateTime.Today)
+                {
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h5 class="card-title">Actions</h5>
+                        </div>
+                        <div class="card-content">
+                            <div class="action-buttons">
+                                <form asp-action="CompleteAppointment" method="post" style="display: inline;">
+                                    <input type="hidden" name="appointmentId" value="@Model.AppointmentId" />
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-check-circle"></i> Mark as Completed
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Patient Info -->
+            <div class="col-lg-4">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h5 class="card-title">Patient Information</h5>
+                    </div>
+                    <div class="card-content">
+                        <div class="patient-profile">
+                            <div class="patient-avatar">
+                                <img src="@(Model.PatientAvatarUrl ?? "/placeholder.svg?height=80&width=80")" alt="Patient" class="avatar">
+                            </div>
+                            <div class="patient-details">
+                                <h6>@Model.PatientName</h6>
+                                <p class="text-muted">Patient</p>
+                            </div>
+                        </div>
+
+                        <div class="contact-info">
+                            <div class="info-item">
+                                <i class="fas fa-envelope"></i>
+                                <span>@Model.PatientEmail</span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(Model.PatientPhoneNumber))
+                            {
+                                <div class="info-item">
+                                    <i class="fas fa-phone"></i>
+                                    <span>@Model.PatientPhoneNumber</span>
+                                </div>
+                            }
+                            @if (Model.PatientDateOfBirth.HasValue)
+                            {
+                                <div class="info-item">
+                                    <i class="fas fa-birthday-cake"></i>
+                                    <span>@Model.PatientDateOfBirth?.ToString("MMM dd, yyyy") (Age: @((DateTime.Now.Year - Model.PatientDateOfBirth?.Year) ?? 0))</span>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.PatientGender))
+                            {
+                                <div class="info-item">
+                                    <i class="fas fa-user"></i>
+                                    <span>@Model.PatientGender</span>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.PatientAddress))
+                            {
+                                <div class="info-item">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    <span>@Model.PatientAddress</span>
+                                </div>
+                            }
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(Model.PatientEmergencyPhoneNumber))
+                        {
+                            <div class="emergency-contact">
+                                <h6>Emergency Contact</h6>
+                                <div class="info-item">
+                                    <i class="fas fa-phone-alt text-danger"></i>
+                                    <span>@Model.PatientEmergencyPhoneNumber</span>
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Medical Info -->
+                        <div class="medical-info">
+                            <h6>Medical Information</h6>
+                            @if (!string.IsNullOrEmpty(Model.PatientBloodType))
+                            {
+                                <div class="info-item">
+                                    <i class="fas fa-tint"></i>
+                                    <span>Blood Type: @Model.PatientBloodType</span>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.PatientAllergies))
+                            {
+                                <div class="info-item">
+                                    <i class="fas fa-exclamation-triangle text-warning"></i>
+                                    <span>Allergies: @Model.PatientAllergies</span>
+                                </div>
+                            }
+                            @if (Model.PatientWeight.HasValue || Model.PatientHeight.HasValue)
+                            {
+                                <div class="info-item">
+                                    <i class="fas fa-ruler"></i>
+                                    <span>
+                                        @if (Model.PatientHeight.HasValue)
+                                        {
+                                            <text>Height: @Model.PatientHeight cm</text>
+                                        }
+                                        @if (Model.PatientWeight.HasValue)
+                                        {
+                                            <text>Weight: @Model.PatientWeight kg</text>
+                                        }
+                                        @if (Model.PatientBmi.HasValue)
+                                        {
+                                            <text>(BMI: @Model.PatientBmi.Value.ToString("F1"))</text>
+                                        }
+                                    </span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Appointment Modal -->
+<div class="modal fade" id="rejectAppointmentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reject Appointment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="rejectAppointmentForm" asp-action="RejectAppointment" method="post">
+                    <input type="hidden" id="rejectAppointmentId" name="appointmentId" value="@Model.AppointmentId" />
+                    <div class="mb-3">
+                        <label for="rejectReason" class="form-label">Reason for rejection (Optional)</label>
+                        <textarea class="form-control" id="rejectReason" name="reason" rows="3" placeholder="Please provide a reason for rejecting this appointment..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="submitReject()">Reject Appointment</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .appointment-item-detailed {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 15px;
+        background: white;
+        transition: box-shadow 0.2s;
+    }
+
+        .appointment-item-detailed:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+    .appointment-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .patient-info h6 {
+        margin: 0;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .appointment-type {
+        margin: 5px 0 0 0;
+        color: #666;
+        font-size: 0.9em;
+    }
+
+    .appointment-time {
+        text-align: right;
+        color: #555;
+    }
+
+        .appointment-time i {
+            margin-right: 5px;
+        }
+
+    .appointment-details {
+        margin-bottom: 15px;
+        padding-top: 15px;
+        border-top: 1px solid #f0f0f0;
+    }
+
+        .appointment-details p {
+            margin: 5px 0;
+            font-size: 0.9em;
+        }
+
+    .appointment-actions {
+        border-top: 1px solid #f0f0f0;
+        padding-top: 15px;
+        display: flex;
+        gap: 10px;
+    }
+
+    .no-appointments {
+        text-align: center;
+        padding: 40px 20px;
+        color: #999;
+    }
+
+        .no-appointments i {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+    .info-group {
+        margin-bottom: 20px;
+    }
+
+        .info-group label {
+            font-weight: 600;
+            color: #555;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .info-group p {
+            margin: 0;
+            color: #333;
+        }
+
+    .patient-profile {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .patient-avatar {
+        margin-right: 15px;
+    }
+
+    .avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .contact-info, .medical-info, .emergency-contact {
+        margin-bottom: 20px;
+    }
+
+    .info-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+        font-size: 0.9em;
+    }
+
+        .info-item i {
+            width: 20px;
+            margin-right: 10px;
+            color: #666;
+        }
+
+    .action-buttons {
+        display: flex;
+        gap: 15px;
+    }
+
+    .emergency-contact h6, .medical-info h6 {
+        font-weight: 600;
+        margin-bottom: 10px;
+        color: #555;
+    }
+</style>
+
+<script>
+    function showRejectModal(appointmentId) {
+        var modal = new bootstrap.Modal(document.getElementById('rejectAppointmentModal'));
+        modal.show();
+    }
+
+    function submitReject() {
+        document.getElementById('rejectAppointmentForm').submit();
+    }
+</script> 
