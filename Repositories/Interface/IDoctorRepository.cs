@@ -9,6 +9,7 @@ namespace Repositories.Interface
 {
     public interface IDoctorRepository
     {
+        Task<IEnumerable<Doctor>> GetAll();
         Task<Doctor?> GetDoctorByUserIdAsync(int userId);
         Task UpdateDoctorAsync(Doctor doctor);
         Task<List<Doctor>> GetBySpecialtyAsync(int specialtyId);
