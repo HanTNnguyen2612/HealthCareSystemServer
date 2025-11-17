@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using System.Threading.Tasks;
 using BusinessObjects.Domain;
 using Microsoft.AspNetCore.Authorization;
@@ -35,6 +35,9 @@ namespace HealthcareSystemAPI.Controllers
         [HttpGet]
         public async Task<IActionResult> GetHistory([FromRoute] int conversationId, [FromQuery] int skip = 0, [FromQuery] int take = 50)
         {
+            // Log để kiểm tra xem code mới có chạy không
+            Console.WriteLine($"---> API GetHistory called for Conversation {conversationId}");
+
             var convo = await _conversationService.GetByIdAsync(conversationId);
             if (convo == null) return NotFound();
 
@@ -43,8 +46,16 @@ namespace HealthcareSystemAPI.Controllers
             var userId = int.Parse(userIdClaim);
             if (!_conversationService.IsParticipant(convo, userId)) return Forbid();
 
+            // Lấy dữ liệu thô từ Service/DAO
             var messages = await _messageService.GetByConversationPagedAsync(conversationId, skip, take);
-            var result = messages.Select(m => new
+
+            // CHUYỂN ĐỔI SANG DTO (Data Transfer Object)
+            // Bước này cắt đứt mọi quan hệ vòng tròn
+            var result = new List<object>();
+
+            foreach (var m in messages)
+            {
+                result.Add(new
             {
                 messageId = m.MessageId,
                 conversationId = m.ConversationId,
@@ -55,6 +66,8 @@ namespace HealthcareSystemAPI.Controllers
                 updatedAt = m.UpdatedAt,
                 isRead = m.IsRead
             });
+            }
+
             return Ok(result);
         }
 

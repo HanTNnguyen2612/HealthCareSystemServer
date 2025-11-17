@@ -5,9 +5,8 @@
     Layout = "_LayoutUser";
     ViewData["Title"] = "Messages";
 }
-<!-- Main Content -->
+
 <div class="main-content">
-    <!-- Header -->
     <header class="header">
         <h1 class="header-title">Messages</h1>
         <div class="search-container">
@@ -22,17 +21,15 @@
             <div class="user-profile" onclick="window.location.href='profile.html'">
                 <img src="/placeholder.svg?height=32&width=32" alt="User" class="user-avatar">
                 <div class="user-info">
-                    <h6 id="userName">John Doe</h6>
+                    <h6 id="headerUserName">Loading...</h6>
                     <p>Patient</p>
                 </div>
             </div>
         </div>
     </header>
 
-    <!-- Messages Layout -->
     <div class="content">
         <div class="messages-layout">
-            <!-- Conversations Panel -->
             <div class="dashboard-card conversations-panel">
                 <div class="card-header">
                     <h5 class="card-title">Conversations</h5>
@@ -41,20 +38,19 @@
                     </button>
                 </div>
                 <div class="conversations-list" id="conversationsList">
-                    <!-- Populated by JavaScript -->
+                    <div class="text-center p-3 text-muted">Loading conversations...</div>
                 </div>
             </div>
 
-            <!-- Chat Panel -->
             <div class="dashboard-card chat-panel">
                 <div class="chat-container" id="chatContainer">
-                    <!-- Chat Header -->
+
                     <div class="chat-header" id="chatHeader" style="display: none;">
                         <div class="chat-doctor-info">
                             <img src="/placeholder.svg?height=48&width=48" alt="Doctor" class="chat-avatar" id="chatAvatar">
                             <div class="chat-doctor-details">
-                                <h6 id="chatDoctorName">Dr. Sarah Johnson</h6>
-                                <p id="chatDoctorSpecialty">Cardiology</p>
+                                <h6 id="chatDoctorName">Doctor Name</h6>
+                                <p id="chatDoctorSpecialty">Specialist</p>
                             </div>
                         </div>
                         <div class="chat-actions">
@@ -70,7 +66,6 @@
                         </div>
                     </div>
 
-                    <!-- Chat Messages -->
                     <div class="chat-messages" id="chatMessages">
                         <div class="empty-chat">
                             <div class="empty-chat-icon">
@@ -81,7 +76,6 @@
                         </div>
                     </div>
 
-                    <!-- Chat Input -->
                     <div class="chat-input-container" id="chatInputContainer" style="display: none;">
                         <form class="chat-input-form" onsubmit="sendMessage(event)">
                             <div class="chat-input-wrapper">
@@ -101,30 +95,37 @@
     </div>
 </div>
 
-<!-- Video Call Modal -->
-<div class="modal fade" id="videoCallModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Video Call with <span id="videoCallDoctorName">Dr. Sarah Johnson</span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal fade" id="videoCallModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content" style="background-color: #202124; border-radius: 15px; overflow: hidden; color: white;">
+
+            <div class="modal-header border-0 py-2" style="background: rgba(0,0,0,0.3); position: absolute; top: 0; width: 100%; z-index: 10;">
+                <h6 class="modal-title">
+                    <i class="fas fa-video text-danger me-2"></i>
+                    Call with <span id="videoCallPartnerName" class="fw-bold">Doctor</span>
+                </h6>
             </div>
-            <div class="modal-body">
-                <div class="video-placeholder">
-                    <div class="video-content">
-                        <i class="fas fa-video" style="font-size: 3rem; margin-bottom: 1rem;"></i>
-                        <h5>Video Call</h5>
-                        <p>Connecting to <span id="videoCallDoctorName2">Dr. Sarah Johnson</span>...</p>
-                    </div>
+
+            <div class="modal-body p-0 position-relative" style="height: 70vh; background: black;">
+
+                <div id="video-loading" class="d-flex flex-column justify-content-center align-items-center h-100 w-100 position-absolute" style="z-index: 5; background: #202124;">
+                    <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+                    <h5 id="connectionStatus">Connecting...</h5>
+                    <p class="text-muted small">Waiting for answer...</p>
                 </div>
-                <div class="video-controls">
-                    <button class="video-control-btn" onclick="toggleMute()">
+
+                <div id="remote-video" style="width: 100%; height: 100%; background-color: #000; position: absolute; top: 0; left: 0; z-index: 1;"></div>
+
+                <div id="local-video" style="position: absolute; bottom: 20px; right: 20px; width: 200px; height: 150px; background: #333; border: 2px solid #fff; border-radius: 10px; overflow: hidden; z-index: 10; box-shadow: 0 4px 15px rgba(0,0,0,0.5);"></div>
+
+                <div class="position-absolute bottom-0 start-50 translate-middle-x mb-4 d-flex gap-3" style="z-index: 20;">
+                    <button class="btn btn-light rounded-circle p-3 shadow" onclick="toggleMute()" id="btnMute" title="Mute/Unmute">
                         <i class="fas fa-microphone"></i>
                     </button>
-                    <button class="video-control-btn" onclick="toggleVideo()">
+                    <button class="btn btn-light rounded-circle p-3 shadow" onclick="toggleVideo()" id="btnVideo" title="Camera On/Off">
                         <i class="fas fa-video"></i>
                     </button>
-                    <button class="video-control-btn danger" onclick="endCall()">
+                    <button class="btn btn-danger rounded-circle p-3 shadow px-4" onclick="endCall()" title="End Call">
                         <i class="fas fa-phone-slash"></i>
                     </button>
                 </div>
@@ -133,22 +134,30 @@
     </div>
 </div>
 
+
 <script src="~/microsoft/signalr/dist/browser/signalr.min.js"></script>
+
+<script src="https://sdk.twilio.com/js/video/releases/2.27.0/twilio-video.min.js"></script>
+
 <script>
-    // Pass server-side data to JavaScript
-    window.apiBaseUrl = '@(ViewBag.ApiBaseUrl ?? "https://localhost:7293")';
-    window.userId = @(Context.Session.GetInt32("UserId") ?? 0);
-    @{
-        var token = Context.Session.GetString("AccessToken") ?? "";
-        var email = Context.Session.GetString("Email") ?? "";
-    }
-    window.userToken = @Html.Raw(Json.Serialize(token));
-    window.userName = @Html.Raw(Json.Serialize(email));
-    
-    // Debug info
-    console.log('Page configuration loaded');
-    console.log('API Base URL:', window.apiBaseUrl);
-    console.log('User ID:', window.userId);
-    console.log('Token exists:', !!window.userToken && window.userToken !== '');
+    window.AppConfig = {
+        apiBaseUrl: '@(ViewBag.ApiBaseUrl ?? "https://localhost:7293")', // Check đúng Port API
+        userId: @(Context.Session.GetInt32("UserId") ?? 0),
+        userToken: @Html.Raw(Json.Serialize(Context.Session.GetString("AccessToken") ?? "")),
+        userEmail: @Html.Raw(Json.Serialize(Context.Session.GetString("Email") ?? "Guest"))
+    };
+
+    console.log('AppConfig initialized:', window.AppConfig);
 </script>
+
 <script src="~/js/user/messages.js?v=@DateTime.Now.Ticks"></script>
+
+<script>
+    // Hiển thị tên người dùng lên Header ngay khi tải trang
+    document.addEventListener("DOMContentLoaded", function() {
+        const nameEl = document.getElementById("headerUserName");
+        if(nameEl && window.AppConfig.userEmail) {
+            nameEl.innerText = window.AppConfig.userEmail;
+        }
+    });
+</script>
