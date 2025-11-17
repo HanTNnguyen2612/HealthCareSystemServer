@@ -32,5 +32,12 @@ namespace Services.Interface
 
         Task<bool> IsTimeSlotBookedAsync(int doctorId, DateTime dateTime, int excludeAppointmentId);
 
+        Task<AppointmentResponseDetails?> GetAppointmentForDoctorAsync(int appointmentId);
+
+        Task<bool?> UpdateRejectAsync(RejectRequest dto);
+
+        Task<bool?> RequestConfirm(ConfirmRequest dto);
+
+        Task<bool?> RequestCompleted(RejectRequest dto);
     }
 }

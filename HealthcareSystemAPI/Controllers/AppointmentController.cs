@@ -6,7 +6,7 @@ using System.Security.Claims;
 
 namespace HealthcareSystemAPI.Controllers
 {
-    
+
     [Route("api/[controller]")]
     [Controller]
     public class AppointmentController : Controller
@@ -30,6 +30,17 @@ namespace HealthcareSystemAPI.Controllers
         public async Task<IActionResult> GetById(int id)
         {
             var appointment = await _appointmentService.GetByIdAsync(id);
+            if (appointment == null)
+                return NotFound(new { message = "Appointment not found" });
+
+            return Ok(appointment);
+        }
+
+
+        [HttpGet("detail/{id}")]
+        public async Task<IActionResult> GetAppointmentDetailAsync(int id)
+        {
+            var appointment = await _appointmentService.GetAppointmentForDoctorAsync(id);
             if (appointment == null)
                 return NotFound(new { message = "Appointment not found" });
 
@@ -65,8 +76,8 @@ namespace HealthcareSystemAPI.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            
-            var updated = await _appointmentService.UpdateAsync(request , id);
+
+            var updated = await _appointmentService.UpdateAsync(request, id);
             if (updated == null)
                 return NotFound(new { message = "Appointment not found" });
 
@@ -88,20 +99,30 @@ namespace HealthcareSystemAPI.Controllers
         [HttpPost("Pending")]
         public async Task<IActionResult> GetListPendingPatientId()
         {
-            var userId =  int.Parse(User.FindFirst("UserId").Value);
+            var userId = int.Parse(User.FindFirst("UserId").Value);
             var result = await _appointmentService.GetStatusPatientId("Pending", userId);
             if (result == null) return NotFound(new { message = "Appointment not found" });
             return Ok(result);
         }
 
-        [HttpPost("Confirmed")]
-        public async Task<IActionResult> GetListConfirmedPatientId()
-        {
-            var userId = int.Parse(User.FindFirst("UserId").Value);
-            var result = await _appointmentService.GetStatusPatientId("Confirmed", userId);
+        [HttpPatch("Confirmed")]
+        public async Task<IActionResult> RequestConfirm([FromBody] ConfirmRequest dto)
+        {       
+            var result = await _appointmentService.RequestConfirm(dto);
             if (result == null) return NotFound(new { message = "Appointment not found" });
             return Ok(result);
         }
+
+
+        [HttpPatch("Completed")]
+        public async Task<IActionResult> RequetsCompleted([FromBody] RejectRequest dto)
+        {
+            var result = await _appointmentService.RequestCompleted(dto);
+            if (result == null) return NotFound(new { message = "Appointment not found" });
+            return Ok(result);
+        }
+
+
         [HttpPost("Cancelled")]
         public async Task<IActionResult> GetListCancelledPatientId()
         {
@@ -130,7 +151,7 @@ namespace HealthcareSystemAPI.Controllers
         [HttpPost("timeslot3")]
         public async Task<IActionResult> IsTimeSlotBook3([FromBody] IsTimeSlotBook3Request dto)
         {
-            var result = await _appointmentService.IsTimeSlotBookedAsync(dto.DoctorId , dto.AppointmentDate , dto.excludeAppointmentId);
+            var result = await _appointmentService.IsTimeSlotBookedAsync(dto.DoctorId, dto.AppointmentDate, dto.excludeAppointmentId);
             return Ok(result);
         }
         [HttpPost("timeslot2")]
@@ -147,6 +168,23 @@ namespace HealthcareSystemAPI.Controllers
             var users = await _appointmentService.GetAllUsersAsync(id);
             return Ok(users ?? new List<DoctorSpecialtyResponse>());
         }
-    }
 
+        [HttpGet("doctor/{id}")]
+        public async Task<IActionResult> GetByDoctorId(int id)
+        {
+            var result = await _appointmentService.GetByDoctorId(id);
+            if (result == null) return NotFound(new { message = "Appointment not found" });
+            return Ok(result);
+        }
+
+        [HttpPatch("Reject")]
+        public async Task<IActionResult> RejectAppointment([FromBody] RejectRequest dto)
+        {
+            var result = await _appointmentService.UpdateRejectAsync(dto);
+            if (result == null) return NotFound(new { message = "Appointment not found" });
+            return Ok(result);
+        }
+
+        
+    }
 }
