@@ -1,41 +1,42 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@using HealthCareSystemClient.Models
+@model UserAIChatViewModel
 @{
     Layout = "_LayoutUser";
     ViewData["Title"] = "AI Assistant";
+    // KHAI BÁO BASE URL CỦA WEB API TẠI ĐÂY
+    var apiBaseUrl = "https://localhost:7293";
 }
-<!-- Main Content -->
+
+<script>
+    const API_BASE_URL = "@apiBaseUrl";
+    const CURRENT_USER_ID = @Model.UserId;
+</script>
+
 <div class="main-content">
-    <!-- Header -->
     <header class="header">
         <h1 class="header-title">AI Health Assistant</h1>
-        <div class="search-container">
-            <i class="fas fa-search search-icon"></i>
-            <input type="text" class="search-input" placeholder="Search health topics..." id="searchInput">
-        </div>
         <div class="header-actions">
             <button class="notification-btn">
                 <i class="fas fa-bell"></i>
                 <span class="notification-badge">3</span>
             </button>
-            <div class="user-profile" onclick="window.location.href='profile.html'">
-                <img src="/placeholder.svg?height=32&width=32" alt="User" class="user-avatar">
-                <div class="user-info">
-                    <h6 id="userName">John Doe</h6>
-                    <p>Patient</p>
+            <a asp-controller="User" asp-action="Profile" style="text-decoration: none;">
+                <div class="user-profile" onclick="window.location.href='profile.html'">
+                    <img src="@Model.AvatarUrl" alt="User" class="user-avatar">
+                    <div class="user-info">
+                        <p id="userId" style="display: none;">@Model.UserId</p>
+                        <h6>@Model.FullName</h6>
+                        <p>Patient</p>
+                    </div>
                 </div>
-            </div>
+            </a>
         </div>
     </header>
 
-    <!-- AI Chat Layout -->
     <div class="content">
         <div class="ai-chat-layout">
-            <!-- AI Chat Panel -->
             <div class="dashboard-card ai-chat-panel">
                 <div class="ai-chat-container">
-                    <!-- AI Chat Header -->
                     <div class="ai-chat-header">
                         <div class="ai-assistant-info">
                             <div class="ai-avatar">
@@ -46,13 +47,12 @@
                                 <p>Your personal health companion</p>
                             </div>
                         </div>
-                        <div class="ai-status">
-                            <div class="status-indicator online"></div>
-                            <span class="status-text">Online</span>
+                        <div class="ai-delete-btn">
+                            @* Dùng data attribute để lấy ID trong JS *@
+                            <button id="deleteAllBtn" data-user-id="@Model.UserId" class="btn btn-primary">Delete Chat History</button>
                         </div>
                     </div>
 
-                    <!-- AI Chat Messages -->
                     <div class="ai-chat-messages" id="aiChatMessages">
                         <div class="message ai-message">
                             <div class="message-avatar">
@@ -84,9 +84,8 @@
                         </div>
                     </div>
 
-                    <!-- AI Chat Input -->
                     <div class="ai-chat-input-container">
-                        <form class="ai-chat-input-form" onsubmit="sendAIMessage(event)">
+                        <form class="ai-chat-input-form" id="aiChatForm" onsubmit="sendAIMessage(event)">
                             <div class="ai-chat-input-wrapper">
                                 <input type="text" class="ai-chat-input" id="aiMessageInput" placeholder="Ask me anything about your health...">
                                 <button type="button" class="ai-voice-btn" onclick="startVoiceInput()">
@@ -101,56 +100,7 @@
                 </div>
             </div>
 
-            <!-- Quick Questions & Features Panel -->
             <div class="quick-questions-panel">
-                <!-- Quick Questions -->
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <h5 class="card-title">Quick Questions</h5>
-                    </div>
-                    <div class="card-content">
-                        <div class="quick-questions-grid">
-                            <button class="quick-question-btn" onclick="askQuickQuestion('What are the symptoms of flu?')">
-                                <div class="question-icon">
-                                    <i class="fas fa-thermometer-half"></i>
-                                </div>
-                                <span>Flu Symptoms</span>
-                            </button>
-                            <button class="quick-question-btn" onclick="askQuickQuestion('How to manage high blood pressure?')">
-                                <div class="question-icon">
-                                    <i class="fas fa-heart"></i>
-                                </div>
-                                <span>Blood Pressure</span>
-                            </button>
-                            <button class="quick-question-btn" onclick="askQuickQuestion('What foods are good for diabetes?')">
-                                <div class="question-icon">
-                                    <i class="fas fa-apple-alt"></i>
-                                </div>
-                                <span>Diabetes Diet</span>
-                            </button>
-                            <button class="quick-question-btn" onclick="askQuickQuestion('How much water should I drink daily?')">
-                                <div class="question-icon">
-                                    <i class="fas fa-tint"></i>
-                                </div>
-                                <span>Daily Water Intake</span>
-                            </button>
-                            <button class="quick-question-btn" onclick="askQuickQuestion('What are healthy sleep habits?')">
-                                <div class="question-icon">
-                                    <i class="fas fa-bed"></i>
-                                </div>
-                                <span>Sleep Health</span>
-                            </button>
-                            <button class="quick-question-btn" onclick="askQuickQuestion('How to reduce stress naturally?')">
-                                <div class="question-icon">
-                                    <i class="fas fa-leaf"></i>
-                                </div>
-                                <span>Stress Management</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- AI Features -->
                 <div class="dashboard-card">
                     <div class="card-header">
                         <h5 class="card-title">AI Features</h5>
@@ -197,15 +147,12 @@
                     </div>
                 </div>
 
-                <!-- Recommended Doctors -->
-                <div class="dashboard-card">
+                <div class="dashboard-card recommended-doctors-card" id="recommendedDoctorsCard">
                     <div class="card-header">
                         <h5 class="card-title">Recommended Doctors</h5>
-                        <a href="doctors-modern.html" class="view-all-link">View All</a>
                     </div>
                     <div class="card-content">
                         <div class="recommended-doctors-grid" id="recommendedDoctors">
-                            <!-- Populated by JavaScript -->
                         </div>
                     </div>
                 </div>
@@ -213,5 +160,45 @@
         </div>
     </div>
 </div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    function deleteAllMessages(userId) {
+        // KIỂM TRA: Đảm bảo userId hợp lệ
+        if (!userId || userId <= 0) {
+            alert("Lỗi: Không tìm thấy ID người dùng để xóa lịch sử.");
+            return;
+        }
+
+        // 📢 SỬA LỖI URL 404: Ghép BASE URL chính xác
+        const deleteUrl = `${API_BASE_URL}/api/chatbox/messages/delete/${userId}`;
+        console.log("Gọi DELETE API:", deleteUrl);
+
+        $.ajax({
+            url: deleteUrl,
+            type: 'DELETE',
+            // Cần THÊM Access Token nếu API yêu cầu xác thực
+            // headers: {
+            //     'Authorization': 'Bearer ' + sessionStorage.getItem('AccessToken')
+            // },
+            success: function(response) {
+                alert("Đã xóa lịch sử chat thành công!");
+                $("#aiChatMessages").empty(); // Xóa tin nhắn khỏi giao diện
+            },
+            error: function(xhr, status, error) {
+                console.error("Lỗi xóa tin nhắn:", xhr.responseText || error);
+                alert("Xóa lịch sử thất bại. Vui lòng kiểm tra console.");
+            },
+        });
+    }
+
+    $(document).ready(function() {
+        // 📢 SỬA LỖI LOGIC NÚT XÓA
+        $("#deleteAllBtn").on("click", function() {
+            var userId = $(this).data('user-id'); // Lấy ID từ data attribute
+            deleteAllMessages(userId);
+        });
+    });
+</script>
 
 <script src="~/js/user/ai-chat.js"></script>

@@ -1,4 +1,5 @@
 ﻿using BusinessObjects.DataTransferObjects.DoctorDTOs;
+using BusinessObjects.Domain;
 using Repositories.Interface;
 using Services.Interface;
 using System;
@@ -51,5 +52,8 @@ namespace Services.Services
             await _doctorRepository.UpdateDoctorAsync(doctor);
             return true;
         }
+
+        public async Task<List<Doctor>> GetBySpecialtyAsync(int specialtyId) =>
+            await _doctorRepository.GetBySpecialtyAsync(specialtyId);
     }
 }

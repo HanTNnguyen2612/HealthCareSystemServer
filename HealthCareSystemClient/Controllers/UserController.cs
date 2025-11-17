@@ -3,11 +3,12 @@ using Azure.Core;
 using BusinessObjects.DataTransferObjects.AppointmentDTOs;
 using BusinessObjects.DataTransferObjects.AuthDTOs;
 using BusinessObjects.Domain;
+using HealthCareSystemClient.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http.Json;
-
+using Microsoft.AspNetCore.Http;
 namespace HealthCareSystemClient.Controllers
 {
     public class UserController : Controller
@@ -601,11 +602,30 @@ namespace HealthCareSystemClient.Controllers
             ViewBag.ApiBaseUrl = "https://localhost:7293";
             return View();
         }
+
+        [HttpGet]
         public IActionResult ChatBox()
         {
             ViewData["ActiveMenu"] = "ChatBox";
-            return View();
+
+            // 1. Lấy thông tin từ Session
+            var currentUserId = HttpContext.Session.GetInt32("UserId");
+            var fullName = HttpContext.Session.GetString("FullName");
+            var avatarUrl = HttpContext.Session.GetString("AvatarUrl");
+
+            // 2. Khởi tạo Model, đảm bảo không có thuộc tính nào là null
+            var model = new UserAIChatViewModel
+            {
+                // Nếu UserId không tồn tại, gán giá trị 0 hoặc xử lý chuyển hướng
+                UserId = currentUserId ?? 0,
+                FullName = fullName ?? "Patient",
+                AvatarUrl = avatarUrl ?? "/images/default-avatar.png"
+            };
+
+            // 3. Truyền Model vào View
+            return View(model);
         }
+
         public IActionResult Profile()
         {
             ViewData["ActiveMenu"] = "Profile";
