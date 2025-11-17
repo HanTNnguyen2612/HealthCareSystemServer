@@ -76,7 +76,8 @@ namespace HealthcareSystemAPI.Controllers
                     {
                         content = lastMessage.Content,
                         sentAt = lastMessage.SentAt,
-                        senderId = lastMessage.SenderId
+                        senderId = lastMessage.SenderId,
+                        messageType = lastMessage.MessageType
                     } : null,
                     unreadCount = unreadCount,
                     updatedAt = c.UpdatedAt ?? c.CreatedAt
