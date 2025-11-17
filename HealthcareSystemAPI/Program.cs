@@ -28,18 +28,25 @@ builder.Services.AddCors(options =>
         policy =>
         {
             policy.WithOrigins("https://localhost:7206") // 🎯 Client của bạn
-                  .AllowAnyHeader()
-                  .AllowAnyMethod(); // Quan trọng: Cho phép DELETE và OPTIONS
+                      .AllowAnyHeader()
+                      .AllowAnyMethod(); // Quan trọng: Cho phép DELETE và OPTIONS
         });
 
     // Policy cho các cổng khác (ví dụ: 7002, nếu cần cho SignalR hoặc testing)
     options.AddPolicy("AllowLocalhost",
         policy =>
         {
-            policy.WithOrigins("https://localhost:7002", "http://localhost:7002")
-                  .AllowAnyHeader()
-                  .AllowAnyMethod()
-                  .AllowCredentials();
+            policy.WithOrigins(
+                    "https://localhost:7002",
+                    "http://localhost:7002",
+                    "https://localhost:7206",
+                    "http://localhost:7206",
+                    "https://localhost:5237",
+                    "http://localhost:5237"
+                )
+                      .AllowAnyHeader()
+                      .AllowAnyMethod()
+                      .AllowCredentials();
         });
 });
 
@@ -63,6 +70,7 @@ builder.Services.AddDbContext<HealthCareSystemContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnectionString")));
 builder.Services.Configure<OpenAIOptions>(builder.Configuration.GetSection("Gemini"));
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
+
 // ------------------ Repository DI ----------------------
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<ITokenRepository, TokenRepository>();
@@ -84,9 +92,12 @@ builder.Services.AddScoped<IDoctorService, DoctorService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<IConversationService, ConversationService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
+// Hợp nhất các dịch vụ mới từ cả hai nhánh
 builder.Services.AddScoped<IAiConversationService, AiConversationService>();
 builder.Services.AddScoped<IAiMessageService, AiMessageService>();
 builder.Services.AddScoped<ISpecialtyService, SpecialtyService>();
+builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
+
 
 // ------------------ DAO DI ----------------------
 builder.Services.AddScoped<PatientDAO>();
@@ -94,6 +105,7 @@ builder.Services.AddScoped<DoctorDAO>();
 builder.Services.AddScoped<AppointmentDAO>();
 builder.Services.AddScoped<ConversationDAO>();
 builder.Services.AddScoped<MessageDAO>();
+builder.Services.AddScoped<UserDAO>();
 
 // ------------------ SignalR ----------------------
 builder.Services.AddSignalR();
@@ -131,14 +143,21 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     }
                 }
                 return Task.CompletedTask;
+            },
+            OnChallenge = context =>
+            {
+                // Skip authentication for OPTIONS requests (CORS preflight)
+                if (context.Request.Method == "OPTIONS")
+                {
+                    context.HandleResponse();
+                    return Task.CompletedTask;
+                }
+                return Task.CompletedTask;
             }
         };
     });
 
 var app = builder.Build();
-
-
-app.UseCors("AllowSpecificOrigin");
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -147,10 +166,14 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// CORS phải được gọi trước UseAuthentication và UseAuthorization
+// Sử dụng policy "AllowLocalhost" chung nhất để bao gồm tất cả các cổng local
+app.UseCors("AllowLocalhost");
+
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
-// app.UseCors("AllowSpecificOrigin"); // BỊ XÓA (đã gọi ở trên)
+
 app.UseAuthorization();
 
 app.MapControllers();

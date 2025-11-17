@@ -16,15 +16,18 @@ namespace HealthcareSystemAPI.Controllers
     {
         private readonly IConversationService _conversationService;
         private readonly IMessageService _messageService;
+        private readonly ICloudinaryService _cloudinaryService;
         private readonly IHubContext<ChatHub> _hub;
 
         public MessagesController(
             IConversationService conversationService,
             IMessageService messageService,
+            ICloudinaryService cloudinaryService,
             IHubContext<ChatHub> hub)
         {
             _conversationService = conversationService;
             _messageService = messageService;
+            _cloudinaryService = cloudinaryService;
             _hub = hub;
         }
 
@@ -104,6 +107,73 @@ namespace HealthcareSystemAPI.Controllers
             await _hub.Clients.Group(group).SendAsync("ReceiveMessage", payload);
 
             return Ok(payload);
+        }
+
+        // POST: api/conversations/{conversationId}/messages/upload-image
+        [HttpPost("upload-image")]
+        public async Task<IActionResult> UploadImage([FromRoute] int conversationId, IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded.");
+
+            // Validate file type
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+            var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (!allowedExtensions.Contains(fileExtension))
+                return BadRequest("Invalid file type. Only image files (jpg, jpeg, png, gif, webp) are allowed.");
+
+            // Validate file size (max 10MB)
+            if (file.Length > 10 * 1024 * 1024)
+                return BadRequest("File size exceeds 10MB limit.");
+
+            var convo = await _conversationService.GetByIdAsync(conversationId);
+            if (convo == null) return NotFound();
+
+            var userIdClaim = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized();
+            var userId = int.Parse(userIdClaim);
+
+            if (!_conversationService.IsParticipant(convo, userId)) return Forbid();
+
+            try
+            {
+                // Upload to Cloudinary
+                using var stream = file.OpenReadStream();
+                var imageUrl = await _cloudinaryService.UploadImageAsync(stream, file.FileName);
+
+                // Create message with image URL
+                var msg = new Message
+                {
+                    ConversationId = conversationId,
+                    SenderId = userId,
+                    MessageType = "image",
+                    Content = imageUrl,
+                    SentAt = System.DateTime.UtcNow,
+                    IsRead = false
+                };
+
+                await _messageService.CreateAsync(msg);
+
+                var payload = new
+                {
+                    messageId = msg.MessageId,
+                    conversationId = msg.ConversationId,
+                    senderId = msg.SenderId,
+                    content = msg.Content,
+                    messageType = msg.MessageType,
+                    sentAt = msg.SentAt,
+                    isRead = msg.IsRead
+                };
+
+                var group = $"conversation-{conversationId}";
+                await _hub.Clients.Group(group).SendAsync("ReceiveMessage", payload);
+
+                return Ok(payload);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error uploading image: {ex.Message}");
+            }
         }
 
         // POST: api/conversations/{conversationId}/messages/mark-read

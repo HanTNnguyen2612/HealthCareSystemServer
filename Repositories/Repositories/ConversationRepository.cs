@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using BusinessObjects.Domain;
 using DataAccessObjects.DAO;
@@ -27,6 +28,11 @@ namespace Repositories.Repositories
         public async Task<Conversation?> GetByIdAsync(int conversationId)
         {
             return await _conversationDAO.GetByIdAsync(conversationId);
+        }
+
+        public async Task<List<Conversation>> GetByUserIdAsync(int userId)
+        {
+            return await _conversationDAO.GetByUserIdAsync(userId);
         }
     }
 }

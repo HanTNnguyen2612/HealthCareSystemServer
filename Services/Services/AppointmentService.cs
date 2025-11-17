@@ -1,5 +1,6 @@
 ﻿using BusinessObjects.DataTransferObjects.AppointmentDTOs;
 using BusinessObjects.Domain;
+using Microsoft.EntityFrameworkCore;
 using Services.Interface;
 using System;
 using System.Collections.Generic;
@@ -16,12 +17,16 @@ namespace Services.Services
         private readonly IDoctorService _doctorService;
         private readonly IPatientService _patientService;
 
+
+
         public AppointmentService(DataAccessObjects.DAO.AppointmentDAO appointmentDAO, IDoctorService doctorService, IPatientService patientService)
         {
             _appointmentDAO = appointmentDAO;
             _doctorService = doctorService;
             _patientService = patientService;
         }
+
+
         public async Task<List<AppointmentResponse>> GetAll()
         {
             var results = new List<AppointmentResponse>();
@@ -33,6 +38,8 @@ namespace Services.Services
 
                 results.Add(new AppointmentResponse
                 {
+                    doctorid = appointment.DoctorUserId,
+                    patientid = appointment.PatientUserId,
                     AppointmentId = appointment.AppointmentId,
                     DoctorName = doctor.FullName,
                     PatientName = patient.FullName,
@@ -54,6 +61,8 @@ namespace Services.Services
             var patient = await _patientService.GetPatientProfileAsync(appointment.PatientUserId);
             return new AppointmentResponse
             {
+                doctorid = appointment.DoctorUserId,
+                patientid = appointment.PatientUserId,
                 AppointmentId = appointment.AppointmentId,
                 DoctorName = doctor.FullName,
                 PatientName = patient.FullName,
@@ -62,6 +71,40 @@ namespace Services.Services
                 CreatedAt = appointment.CreatedAt,
                 UpdatedAt = appointment.UpdatedAt,
                 Status = appointment.Status
+            };
+
+        }
+
+        public async Task<AppointmentResponseDetails?> GetAppointmentForDoctorAsync(int appointmentId)
+        {
+            var appointment = await _appointmentDAO.GetByIdAsync(appointmentId);
+            if (appointment == null) return null;
+            var doctor = await _doctorService.GetDoctorProfileAsync(appointment.DoctorUserId);
+            var patient = await _patientService.GetPatientProfileAsync(appointment.PatientUserId);
+            return new AppointmentResponseDetails
+            {
+                PatientUserId                     = appointment.PatientUserId,
+                DoctorUserId                      = appointment.DoctorUserId,
+                Status                            = appointment.Status,
+                AppointmentDateTime               = appointment.AppointmentDateTime,
+                AppointmentId                     = appointment.AppointmentId,
+                Notes                             = appointment.Notes,
+                CreatedAt                         = appointment.CreatedAt,
+                UpdatedAt                         = appointment.UpdatedAt,
+                PatientAvatarUrl                  = patient.AvatarUrl,
+                PatientName                       = patient.FullName,
+                DoctorName                        = doctor.FullName,
+                PatientEmail                      = patient.Email,
+                PatientPhoneNumber                = patient.PhoneNumber,
+                PatientDateOfBirth                = appointment.PatientUser.DateOfBirth,
+                PatientGender                     = patient.Gender,
+                PatientAddress                    = patient.Address,
+                PatientEmergencyPhoneNumber       = patient.EmergencyPhoneNumber,
+                PatientBloodType                  = patient.BloodType,
+                PatientAllergies                  = appointment.PatientUser.Allergies,
+                PatientWeight                     = appointment.PatientUser.Weight,
+                PatientHeight                     = appointment.PatientUser.Height,
+                PatientBmi                        = appointment.PatientUser.Bmi
             };
 
         }
@@ -75,6 +118,8 @@ namespace Services.Services
             var patient = await _patientService.GetPatientProfileAsync(appointment.PatientUserId);
             return new AppointmentResponse
             {
+                doctorid = appointment.DoctorUserId,
+                patientid = appointment.PatientUserId,
                 AppointmentId = appointment.AppointmentId,
                 DoctorName = doctor.FullName,
                 PatientName = patient.FullName,
@@ -105,6 +150,8 @@ namespace Services.Services
             var patient = await _patientService.GetPatientProfileAsync(createdAppointment.PatientUserId);
             return new AppointmentResponse
             {
+                doctorid = appointment.DoctorUserId,
+                patientid = appointment.PatientUserId,
                 AppointmentId = createdAppointment.AppointmentId,
                 DoctorName = doctor.FullName,
                 PatientName = patient.FullName,
@@ -134,6 +181,8 @@ namespace Services.Services
             var patient = await _patientService.GetPatientProfileAsync(updatedAppointment.PatientUserId);
             return new AppointmentResponse
             {
+                doctorid = appointment.DoctorUserId,
+                patientid = appointment.PatientUserId,
                 AppointmentId = updatedAppointment.AppointmentId,
                 DoctorName = doctor.FullName,
                 PatientName = patient.FullName,
@@ -164,6 +213,8 @@ namespace Services.Services
 
                 results.Add(new AppointmentResponse
                 {
+                    doctorid = appointment.DoctorUserId,
+                    patientid = appointment.PatientUserId,
                     AppointmentId = appointment.AppointmentId,
                     DoctorName = doctor.FullName,
                     PatientName = patient.FullName,
@@ -216,6 +267,8 @@ namespace Services.Services
 
                     results.Add(new AppointmentResponse
                     {
+                        doctorid = appointment.DoctorUserId,
+                        patientid = appointment.PatientUserId,
                         AppointmentId = appointment.AppointmentId,
                         DoctorName = doctor.FullName,
                         PatientName = patient.FullName,
@@ -244,6 +297,8 @@ namespace Services.Services
 
                     results.Add(new AppointmentResponse
                     {
+                        doctorid = appointment.DoctorUserId,
+                        patientid = appointment.PatientUserId,
                         AppointmentId = appointment.AppointmentId,
                         DoctorName = doctor.FullName,
                         PatientName = patient.FullName,
@@ -266,5 +321,55 @@ namespace Services.Services
         }
 
 
+
+        public async Task<bool> IsTimeSlotBookedAsync(int doctorId, DateTime dateTime)
+        {
+            return await _appointmentDAO.IsTimeSlotBookedAsync(doctorId, dateTime);
+        }
+
+        public async Task<bool> IsTimeSlotBookedAsync(int doctorId, DateTime dateTime, int excludeAppointmentId)
+        {
+            return await _appointmentDAO.IsTimeSlotBookedAsync(doctorId, dateTime, excludeAppointmentId);
+        }
+
+        public async Task<List<DoctorSpecialtyResponse>> GetAllUsersAsync(int specialtyid)
+        {
+            return await _appointmentDAO.GetAllUsersAsync(specialtyid);
+        }
+
+        public async Task<bool?> UpdateRejectAsync(RejectRequest dto)
+        {
+            var appointment = await _appointmentDAO.GetByIdAsync(dto.AppointmentId);
+            if (appointment == null) return false;
+            appointment.Status = "Cancelled";
+            appointment.UpdatedAt = DateTime.UtcNow;
+            if (!string.IsNullOrEmpty(dto.Notes))
+            {
+                appointment.Notes = $"Cancelled by doctor: {dto.Notes}";
+            }
+            await _appointmentDAO.UpdateAsync(appointment);
+            return true;
+        }
+
+
+        public async Task<bool?> RequestConfirm(ConfirmRequest dto)
+        {
+            var appointment = await _appointmentDAO.GetByIdAsync(dto.AppointmentId);
+            if (appointment == null) return false;
+            appointment.Status = "Confirmed";
+            appointment.UpdatedAt = DateTime.UtcNow;
+            await _appointmentDAO.UpdateAsync(appointment);
+            return true;
+        }
+
+        public async Task<bool?> RequestCompleted(RejectRequest dto)
+        {
+            var appointment = await _appointmentDAO.GetByIdAsync(dto.AppointmentId);
+            if (appointment == null) return false;
+            appointment.Status = "Completed";
+            appointment.UpdatedAt = DateTime.UtcNow;
+            await _appointmentDAO.UpdateAsync(appointment);
+            return true;
+        }
     }
 }

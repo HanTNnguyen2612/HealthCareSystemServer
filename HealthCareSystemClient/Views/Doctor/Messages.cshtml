@@ -105,4 +105,22 @@
     </div>
 </div>
 
-<script src="~/js/doctor/messages.js"></script>
+<script src="~/microsoft/signalr/dist/browser/signalr.min.js"></script>
+<script>
+    // Pass server-side data to JavaScript
+    window.apiBaseUrl = '@(ViewBag.ApiBaseUrl ?? "https://localhost:7293")';
+    window.userId = @(Context.Session.GetInt32("UserId") ?? 0);
+    @{
+        var token = Context.Session.GetString("AccessToken") ?? "";
+        var email = Context.Session.GetString("Email") ?? "";
+    }
+    window.userToken = @Html.Raw(Json.Serialize(token));
+    window.userName = @Html.Raw(Json.Serialize(email));
+    
+    // Debug info
+    console.log('Page configuration loaded');
+    console.log('API Base URL:', window.apiBaseUrl);
+    console.log('User ID:', window.userId);
+    console.log('Token exists:', !!window.userToken && window.userToken !== '');
+</script>
+<script src="~/js/doctor/messages.js?v=@DateTime.Now.Ticks"></script>

@@ -1,4 +1,5 @@
-﻿using BusinessObjects.Domain;
+﻿using BusinessObjects.DataTransferObjects.AppointmentDTOs;
+using BusinessObjects.Domain;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -49,5 +50,7 @@ namespace DataAccessObjects.DAO
             await _context.SaveChangesAsync();
             return existingUser;
         }
+
+        
     }
 }
