@@ -43,6 +43,8 @@ namespace HealthcareSystemAPI.Controllers
 
             var userIdClaim = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized();
+            var userId = int.Parse(userIdClaim);
+            if (!_conversationService.IsParticipant(convo, userId)) return Forbid();
 
             // Lấy dữ liệu thô từ Service/DAO
             var messages = await _messageService.GetByConversationPagedAsync(conversationId, skip, take);
@@ -54,15 +56,16 @@ namespace HealthcareSystemAPI.Controllers
             foreach (var m in messages)
             {
                 result.Add(new
-                {
-                    messageId = m.MessageId,
-                    conversationId = m.ConversationId,
-                    senderId = m.SenderId,
-                    content = m.Content,
-                    messageType = m.MessageType ?? "text", // Xử lý null an toàn
-                    sentAt = m.SentAt,
-                    isRead = m.IsRead
-                });
+            {
+                messageId = m.MessageId,
+                conversationId = m.ConversationId,
+                senderId = m.SenderId,
+                content = m.Content,
+                messageType = m.MessageType,
+                sentAt = m.SentAt,
+                updatedAt = m.UpdatedAt,
+                isRead = m.IsRead
+            });
             }
 
             return Ok(result);

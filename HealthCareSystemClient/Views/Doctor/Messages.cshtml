@@ -21,7 +21,8 @@
             <div class="user-profile" onclick="window.location.href='doctor-profile.html'">
                 <img src="/placeholder.svg?height=32&width=32" alt="Doctor" class="user-avatar">
                 <div class="user-info">
-                    <h6 id="doctorName">Dr. Name</h6> <p>Specialist</p>
+                    <h6 id="headerDoctorName">Loading...</h6>
+                    <p>Specialist</p>
                 </div>
             </div>
         </div>
@@ -37,6 +38,7 @@
                     </button>
                 </div>
                 <div class="conversations-list" id="conversationsList">
+                    <div class="text-center p-3 text-muted">Loading...</div>
                 </div>
             </div>
 
@@ -95,10 +97,11 @@
 <div class="modal fade" id="videoCallModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content" style="background-color: #202124; border-radius: 15px; overflow: hidden; color: white;">
-            <div class="modal-header border-0 py-2" style="background: rgba(0,0,0,0.2); position: absolute; top: 0; width: 100%; z-index: 10;">
+
+            <div class="modal-header border-0 py-2" style="background: rgba(0,0,0,0.3); position: absolute; top: 0; width: 100%; z-index: 10;">
                 <h6 class="modal-title">
                     <i class="fas fa-video text-danger me-2"></i>
-                    Call with <span id="videoCallPatientName" class="fw-bold">Patient</span>
+                    Call with <span id="videoCallPartnerName" class="fw-bold">Patient</span>
                 </h6>
             </div>
 
@@ -107,11 +110,12 @@
                 <div id="video-loading" class="d-flex flex-column justify-content-center align-items-center h-100 w-100 position-absolute" style="z-index: 5; background: #202124;">
                     <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
                     <h5 id="connectionStatus">Connecting...</h5>
+                    <p class="text-muted small">Waiting for patient to join...</p>
                 </div>
 
-                <div id="remote-video" style="width: 100%; height: 100%;"></div>
+                <div id="remote-video" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1;"></div>
 
-                <div id="local-video" style="position: absolute; bottom: 20px; right: 20px; width: 180px; height: 135px; background: #333; border: 2px solid #fff; border-radius: 10px; overflow: hidden; z-index: 10; box-shadow: 0 4px 10px rgba(0,0,0,0.5);"></div>
+                <div id="local-video" style="position: absolute; bottom: 20px; right: 20px; width: 200px; height: 150px; background: #333; border: 2px solid #fff; border-radius: 10px; overflow: hidden; z-index: 10; box-shadow: 0 4px 15px rgba(0,0,0,0.5);"></div>
 
                 <div class="position-absolute bottom-0 start-50 translate-middle-x mb-4 d-flex gap-3" style="z-index: 20;">
                     <button class="btn btn-light rounded-circle p-3 shadow" onclick="toggleMute()" id="btnMute"><i class="fas fa-microphone"></i></button>
@@ -123,30 +127,27 @@
     </div>
 </div>
 
-
 <script src="~/microsoft/signalr/dist/browser/signalr.min.js"></script>
-
 <script src="https://sdk.twilio.com/js/video/releases/2.27.0/twilio-video.min.js"></script>
 
 <script>
+    // Cấu hình AppConfig chuẩn
     window.AppConfig = {
         apiBaseUrl: '@(ViewBag.ApiBaseUrl ?? "https://localhost:7293")',
         userId: @(Context.Session.GetInt32("UserId") ?? 0),
         userToken: @Html.Raw(Json.Serialize(Context.Session.GetString("AccessToken") ?? "")),
         userEmail: @Html.Raw(Json.Serialize(Context.Session.GetString("Email") ?? "Doctor"))
     };
-
-    console.log('Doctor App Config Loaded:', window.AppConfig);
 </script>
 
 <script src="~/js/doctor/messages.js?v=@DateTime.Now.Ticks"></script>
 
-@* <script>
-    // Script nhỏ hiển thị tên bác sĩ lên header
+<script>
+    // Hiển thị tên bác sĩ
     document.addEventListener("DOMContentLoaded", function() {
-        const nameEl = document.getElementById("doctorName");
+        const nameEl = document.getElementById("headerDoctorName");
         if(nameEl && window.AppConfig.userEmail) {
-            nameEl.innerText = window.AppConfig.userEmail;
+            nameEl.innerText = "Dr. " + window.AppConfig.userEmail.split('@@')[0];
         }
     });
-</script> *@
+</script>

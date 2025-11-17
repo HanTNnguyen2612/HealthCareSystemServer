@@ -1,8 +1,9 @@
 ﻿/**
- * Patient Messages Logic
+ * Patient Messages & Video Call Logic
+ * Dependencies: SignalR, Twilio Video SDK
  */
 
-// 1. KHỞI TẠO CONFIG
+// 1. SETUP CONFIGURATION
 const CONFIG = window.AppConfig || {
     apiBaseUrl: '',
     userId: 0,
@@ -10,24 +11,26 @@ const CONFIG = window.AppConfig || {
     userEmail: ''
 };
 
-// Variables
+// --- GLOBAL VARIABLES ---
 let currentConversation = null;
 let conversations = [];
 let connection = null;
 let isUploading = false;
 
-// Video Call Variables
+// --- VIDEO CALL VARIABLES ---
 let activeRoom = null;
 let localVideoTrack = null;
+
 
 // ==========================================
 // INITIALIZATION
 // ==========================================
 document.addEventListener('DOMContentLoaded', async () => {
+    // Check Auth
     if (!CONFIG.userToken) {
-        console.error('No token found');
-        const listEl = document.getElementById('conversationsList');
-        if (listEl) listEl.innerHTML = '<p class="text-danger p-3">Please login to view messages.</p>';
+        console.error('Missing User Token in AppConfig');
+        document.getElementById('conversationsList').innerHTML =
+            '<p class="text-danger p-3">Please <a href="/Login">login</a> to view messages.</p>';
         return;
     }
 
@@ -36,8 +39,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupEventListeners();
 });
 
+
 // ==========================================
-// SIGNALR
+// SIGNALR (REAL-TIME CHAT)
 // ==========================================
 async function initializeSignalR() {
     const hubUrl = `${CONFIG.apiBaseUrl}/hubs/chat`;
@@ -51,9 +55,11 @@ async function initializeSignalR() {
         .withAutomaticReconnect()
         .build();
 
+    // Lắng nghe tin nhắn đến
     connection.on('ReceiveMessage', (message) => {
         if (currentConversation && currentConversation.conversationId === message.conversationId) {
             addMessageToUI(message);
+            // markAsRead(message.conversationId); // Optional
         } else {
             updateConversationLastMessage(message.conversationId, message);
         }
@@ -63,13 +69,15 @@ async function initializeSignalR() {
         await connection.start();
         console.log('SignalR Connected');
     } catch (err) {
-        console.error('SignalR Error:', err);
+        console.error('SignalR Connection Error:', err);
     }
 }
 
+
 // ==========================================
-// CONVERSATIONS & CHAT
+// CONVERSATION & MESSAGE LOGIC
 // ==========================================
+
 async function loadConversations() {
     try {
         const response = await fetch(`${CONFIG.apiBaseUrl}/api/conversation/my-conversations`, {
@@ -77,18 +85,20 @@ async function loadConversations() {
             headers: { 'Authorization': `Bearer ${CONFIG.userToken}` }
         });
 
-        if (!response.ok) throw new Error("Failed load conversations");
+        if (!response.ok) throw new Error("API Error: " + response.status);
+
         conversations = await response.json();
         renderConversations();
     } catch (error) {
-        console.error(error);
+        console.error("Load conversations failed:", error);
+        document.getElementById('conversationsList').innerHTML = '<p class="text-muted p-3">Failed to load conversations.</p>';
     }
 }
 
 function renderConversations() {
     const container = document.getElementById('conversationsList');
-    if (!conversations.length) {
-        container.innerHTML = '<p class="text-muted p-3">No conversations found.</p>';
+    if (!conversations || conversations.length === 0) {
+        container.innerHTML = '<p class="text-muted p-3">No conversations found. Start a new one!</p>';
         return;
     }
 
@@ -99,46 +109,52 @@ function renderConversations() {
             </div>
             <div class="conversation-content">
                 <h6 class="conversation-name">${c.otherUserName}</h6>
-                <p class="conversation-preview">${c.lastMessage ? c.lastMessage.content : 'Start chatting...'}</p>
+                <p class="conversation-preview">
+                    ${c.lastMessage ? (c.lastMessage.messageType === 'image' ? '📷 Image' : c.lastMessage.content) : 'Start chatting...'}
+                </p>
             </div>
-             ${c.unreadCount > 0 ? `<div class="unread-badge">${c.unreadCount}</div>` : ''}
+            ${c.unreadCount > 0 ? `<div class="unread-badge">${c.unreadCount}</div>` : ''}
         </div>
     `).join('');
 }
 
 async function selectConversation(conversationId) {
+    // Highlight UI
     document.querySelectorAll('.conversation-item').forEach(i => i.classList.remove('active'));
     event.currentTarget.classList.add('active');
 
     currentConversation = conversations.find(c => c.conversationId === conversationId);
     if (!currentConversation) return;
 
-    // Update Header
+    // Show Chat Area
     document.getElementById('chatHeader').style.display = 'flex';
     document.getElementById('chatInputContainer').style.display = 'block';
+
+    // Update Header Info
     document.getElementById('chatDoctorName').textContent = currentConversation.otherUserName;
     document.getElementById('chatDoctorSpecialty').textContent = currentConversation.specialty || 'Doctor';
-
     const avatar = document.getElementById('chatAvatar');
     if (avatar) avatar.src = currentConversation.otherUserAvatar || '/placeholder.svg?height=48&width=48';
 
-    // Join Group
+    // SignalR Join Group
     if (connection) await connection.invoke('JoinConversation', conversationId);
 
-    // Load Messages
+    // Load History
     loadMessages(conversationId);
 
-    // Reset unread
+    // Clear unread locally
     currentConversation.unreadCount = 0;
     renderConversations();
 }
 
 async function loadMessages(conversationId) {
-    console.log("function nay dang chay")
     try {
         const res = await fetch(`${CONFIG.apiBaseUrl}/api/conversations/${conversationId}/messages?skip=0&take=50`, {
             headers: { 'Authorization': `Bearer ${CONFIG.userToken}` }
         });
+
+        if (!res.ok) throw new Error("Failed load messages");
+
         const messages = await res.json();
         renderMessages(messages);
     } catch (e) {
@@ -156,7 +172,7 @@ function renderMessages(messages) {
     container.innerHTML = messages.map(msg => {
         const isOwn = msg.senderId === CONFIG.userId;
         const contentHtml = msg.messageType === 'image'
-            ? `<img src="${msg.content}" class="img-fluid rounded" style="max-width:200px" onclick="openImageModal('${msg.content}')">`
+            ? `<img src="${msg.content}" class="img-fluid rounded" style="max-width:200px; cursor:pointer;" onclick="openImageModal('${msg.content}')">`
             : `<div class="message-text">${escapeHtml(msg.content)}</div>`;
 
         return `
@@ -167,6 +183,7 @@ function renderMessages(messages) {
             </div>
         `;
     }).join('');
+
     container.scrollTop = container.scrollHeight;
 }
 
@@ -185,6 +202,7 @@ function addMessageToUI(msg) {
         </div>
     `;
 
+    // Remove empty placeholder
     const empty = container.querySelector('.empty-chat');
     if (empty) empty.remove();
 
@@ -198,27 +216,38 @@ async function sendMessage(e) {
     const text = input.value.trim();
     if (!text || !currentConversation) return;
 
-    input.value = '';
+    input.value = ''; // Clear input first for UX
+
     try {
         if (connection) {
+            // Prefer SignalR
             await connection.invoke('SendMessage', currentConversation.conversationId, text, 'text');
+        } else {
+            // Fallback API (Optional)
         }
     } catch (err) {
         console.error("Send failed", err);
+        alert("Failed to send message");
     }
 }
 
 function updateConversationLastMessage(conversationId, message) {
     const conv = conversations.find(c => c.conversationId === conversationId);
     if (conv) {
-        conv.lastMessage = { content: message.content, messageType: message.messageType };
-        if (message.senderId !== CONFIG.userId) conv.unreadCount = (conv.unreadCount || 0) + 1;
+        conv.lastMessage = {
+            content: message.content,
+            messageType: message.messageType
+        };
+        if (message.senderId !== CONFIG.userId) {
+            conv.unreadCount = (conv.unreadCount || 0) + 1;
+        }
         renderConversations();
     }
 }
 
+
 // ==========================================
-// VIDEO CALL LOGIC
+// VIDEO CALL LOGIC (TWILIO)
 // ==========================================
 
 async function fetchTwilioToken(roomName) {
@@ -240,47 +269,68 @@ async function startVideoCall() {
 
     const roomName = `VideoRoom_${currentConversation.conversationId}`;
 
+    // 1. UI Setup
     const modalEl = document.getElementById('videoCallModal');
     const modal = new bootstrap.Modal(modalEl);
     modal.show();
 
-    document.getElementById('videoCallPartnerName').innerText = currentConversation.otherUserName;
+    // Reset UI
+    const partnerName = currentConversation.otherUserName;
+    const nameEl = document.getElementById('videoCallPartnerName') || document.getElementById('videoCallDoctorName');
+    if (nameEl) nameEl.textContent = partnerName;
+
     document.getElementById('video-loading').style.display = 'flex';
     document.getElementById('connectionStatus').innerText = "Connecting...";
-
-    // Clear old video
     document.getElementById('remote-video').innerHTML = '';
     document.getElementById('local-video').innerHTML = '';
 
+    // 2. Get Token
     const tokenData = await fetchTwilioToken(roomName);
     if (!tokenData) {
-        document.getElementById('connectionStatus').innerText = "Token Failed";
+        document.getElementById('connectionStatus').innerText = "Token Error";
         return;
     }
 
+    // 3. Connect Twilio
     try {
         activeRoom = await Twilio.Video.connect(tokenData.token, {
             name: roomName,
             audio: true,
-            video: { width: 640 }
+            video: { width: 640 },
+            preferredVideoCodecs: [{ codec: 'VP8', simulcast: true }],
+            networkQuality: { local: 1, remote: 1 }
         });
 
-        document.getElementById('connectionStatus').innerText = "Waiting for doctor...";
+        console.log(`✅ Connected to Room: ${activeRoom.name}`);
+        document.getElementById('connectionStatus').innerText = "Waiting for partner...";
+
+        // 4. Show Local Video
         createLocalVideo();
 
-        activeRoom.participants.forEach(participantConnected);
-        activeRoom.on('participantConnected', participantConnected);
+        // 5. Xử lý người ĐÃ CÓ TRONG PHÒNG (Quan trọng cho người vào sau)
+        activeRoom.participants.forEach(participant => {
+            console.log(`👀 Found existing participant: ${participant.identity}`);
+            participantConnected(participant);
+        });
 
-        activeRoom.on('participantDisconnected', p => {
-            document.getElementById('remote-video').innerHTML = '';
-            document.getElementById('connectionStatus').innerText = "Doctor left.";
-            document.getElementById('video-loading').style.display = 'flex';
+        // 6. Xử lý người MỚI VÀO
+        activeRoom.on('participantConnected', participant => {
+            console.log(`👋 New participant joined: ${participant.identity}`);
+            participantConnected(participant);
+        });
+
+        // 7. Xử lý người RỜI ĐI
+        activeRoom.on('participantDisconnected', participant => {
+            console.log(`Participant ${participant.identity} left.`);
+            document.getElementById('remote-video').innerHTML = ''; // Xóa video
+            document.getElementById('video-loading').style.display = 'flex'; // Hiện lại loading
+            document.getElementById('connectionStatus').innerText = `${participant.identity} left.`;
         });
 
         activeRoom.on('disconnected', endCallUI);
 
     } catch (err) {
-        console.error(err);
+        console.error("Connect Error:", err);
         alert(err.message);
         modal.hide();
     }
@@ -291,25 +341,88 @@ function createLocalVideo() {
         localVideoTrack = track;
         const container = document.getElementById('local-video');
         container.innerHTML = '';
-        container.appendChild(track.attach());
+        const el = track.attach();
+        // CSS cho local video
+        el.style.width = '100%';
+        el.style.height = '100%';
+        el.style.objectFit = 'cover';
+        el.style.transform = 'scaleX(-1)'; // Gương
+        container.appendChild(el);
     });
 }
 
+// Hàm xử lý khi tìm thấy 1 người tham gia
 function participantConnected(participant) {
-    document.getElementById('video-loading').style.display = 'none';
-    participant.tracks.forEach(pub => {
-        if (pub.isSubscribed) attachTrack(pub.track);
+    console.log(`Processing participant: ${participant.identity}`);
+
+    // Ẩn loading ngay khi tìm thấy người (dù chưa có video)
+    const statusEl = document.getElementById('connectionStatus');
+    if (statusEl) statusEl.innerText = "Connected!";
+
+    // A. Duyệt qua các track ĐÃ CÓ (Audio/Video)
+    participant.tracks.forEach(publication => {
+        if (publication.isSubscribed) {
+            const track = publication.track;
+            attachTrack(track);
+        }
     });
-    participant.on('trackSubscribed', attachTrack);
+
+    // B. Lắng nghe các track MỚI được thêm vào
+    participant.on('trackSubscribed', track => {
+        console.log(`Track subscribed: ${track.kind}`);
+        attachTrack(track);
+    });
 }
 
+// Hàm gắn Video/Audio vào HTML
 function attachTrack(track) {
-    const container = document.getElementById('remote-video');
-    const el = track.attach();
-    el.style.width = '100%';
-    el.style.height = '100%';
-    el.style.objectFit = 'cover';
-    container.appendChild(el);
+    // 1. Xử lý Audio
+    if (track.kind === 'audio') {
+        const el = track.attach();
+        document.body.appendChild(el);
+        return;
+    }
+
+    // 2. Xử lý Video
+    if (track.kind === 'video') {
+        console.log("🎥 Nhận được Video Track:", track);
+
+        const container = document.getElementById('remote-video');
+        const loader = document.getElementById('video-loading');
+        const statusText = document.getElementById('connectionStatus');
+
+        // Xóa video cũ (nếu có)
+        container.innerHTML = '';
+
+        const el = track.attach();
+
+        // Cấu hình bắt buộc cho thẻ Video
+        el.style.width = '100%';
+        el.style.height = '100%';
+        el.style.objectFit = 'cover';
+        el.style.position = 'absolute'; // Đảm bảo nó nằm đúng vị trí
+        el.style.top = '0';
+        el.style.left = '0';
+
+        // Bắt buộc Autoplay (Trình duyệt thường chặn nếu không có dòng này)
+        el.autoplay = true;
+        el.playsInline = true;
+
+        container.appendChild(el);
+
+        // Cập nhật thông báo (để debug)
+        if (statusText) statusText.innerText = "Video Received! Playing...";
+
+        // 🧨 BIỆN PHÁP MẠNH: Ẩn màn hình chờ sau 500ms
+        // (Delay nhẹ để video kịp load hình ảnh lên trước khi ẩn loader)
+        setTimeout(() => {
+            if (loader) {
+                loader.style.display = 'none'; // Ẩn div loading
+                loader.style.setProperty("display", "none", "important"); // Cưỡng chế ẩn
+                console.log("🚀 Đã ẩn màn hình chờ!");
+            }
+        }, 500);
+    }
 }
 
 function endCall() {
@@ -323,23 +436,45 @@ function endCallUI() {
         localVideoTrack = null;
     }
     activeRoom = null;
-    const modal = bootstrap.Modal.getInstance(document.getElementById('videoCallModal'));
+    // Ẩn modal
+    const el = document.getElementById('videoCallModal');
+    const modal = bootstrap.Modal.getInstance(el);
     if (modal) modal.hide();
 }
 
 function toggleMute() {
     if (!activeRoom) return;
-    activeRoom.localParticipant.audioTracks.forEach(pub => {
-        pub.track.isEnabled ? pub.track.disable() : pub.track.enable();
+    let isMuted = false;
+    activeRoom.localParticipant.audioTracks.forEach(p => {
+        p.track.isEnabled ? p.track.disable() : p.track.enable();
+        isMuted = !p.track.isEnabled;
     });
+    // UI update (Optional)
+    const btn = document.getElementById('btnMute');
+    if (btn) {
+        isMuted ? btn.classList.replace('btn-light', 'btn-danger')
+            : btn.classList.replace('btn-danger', 'btn-light');
+    }
 }
 
 function toggleVideo() {
     if (!localVideoTrack) return;
-    localVideoTrack.isEnabled ? localVideoTrack.disable() : localVideoTrack.enable();
+    const btn = document.getElementById('btnVideo');
+
+    if (localVideoTrack.isEnabled) {
+        localVideoTrack.disable();
+        if (btn) btn.classList.replace('btn-light', 'btn-danger');
+    } else {
+        localVideoTrack.enable();
+        if (btn) btn.classList.replace('btn-danger', 'btn-light');
+    }
 }
 
-// Helpers
+
+// ==========================================
+// UTILITIES & PLACEHOLDERS
+// ==========================================
+
 function escapeHtml(text) {
     if (!text) return "";
     return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -358,9 +493,9 @@ function setupEventListeners() {
     }
 }
 
-// Placeholders
-function startNewConversation() { alert('Feature coming soon'); }
-function startVoiceCall() { alert('Voice call coming soon'); }
-function viewDoctorProfile() { alert('Profile coming soon'); }
-function attachFile() { alert('File upload coming soon'); }
+// Placeholder Functions
+function startNewConversation() { alert('Coming soon!'); }
+function startVoiceCall() { alert('Voice call coming soon!'); }
+function viewDoctorProfile() { alert('Profile coming soon!'); }
+function attachFile() { alert('File upload coming soon!'); }
 function openImageModal(url) { window.open(url, '_blank'); }
