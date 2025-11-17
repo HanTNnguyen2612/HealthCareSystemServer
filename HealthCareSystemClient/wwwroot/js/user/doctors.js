@@ -1,197 +1,256 @@
-﻿// Doctors functionality
-document.addEventListener("DOMContentLoaded", () => {
-    updateUserInfo()
-    loadDoctors()
-    loadSpecialtyFilters()
-    setupSearch()
-})
+﻿// --- CONFIGURATION ---
+// BIẾN NÀY PHẢI ĐƯỢC ĐỊNH NGHĨA TRONG RAZOR VIEW TRƯỚC KHI TẢI FILE JS
+// const API_BASE_URL = "https://localhost:7293"; 
+// const CURRENT_USER_ID = 1; 
 
+// State quản lý dữ liệu và bộ lọc
+let allDoctors = [];
+let allSpecialties = [];
+// activeSpecialtyName sẽ là Chuỗi IN HOA của tên chuyên khoa được chọn, hoặc null
+let activeSpecialtyName = null;
+let searchQuery = '';
+
+const doctorsGrid = document.getElementById('doctorsGrid');
+const specialtyFilters = document.getElementById('specialtyFilters');
+const searchInput = document.getElementById('searchInput');
+
+/**
+ * Hàm làm sạch tên chuyên khoa (Chuỗi, TRIM, UPPERCASE)
+ * @param {string | number | null} value 
+ * @returns {string | null}
+ */
+function cleanSpecialtyName(value) {
+    if (value === null || value === undefined) return null;
+    // Chuyển thành chuỗi, loại bỏ khoảng trắng, và chuyển thành IN HOA để so sánh không phân biệt chữ hoa/thường
+    return String(value).trim().toUpperCase();
+}
+
+/**
+ * Kiểm tra các biến toàn cục cần thiết.
+ */
+function checkEnvironment() {
+    if (typeof API_BASE_URL === 'undefined') {
+        console.error("Lỗi: API_BASE_URL chưa được định nghĩa trong Razor View.");
+    }
+}
+
+/**
+ * Cập nhật thông tin người dùng (Giả định)
+ */
 function updateUserInfo() {
-    const userName = localStorage.getItem("userName") || "John Doe"
-    document.getElementById("userName").textContent = userName
+    const userNameElement = document.getElementById("userName");
+    if (userNameElement) {
+        userNameElement.textContent = `User ID: ${typeof CURRENT_USER_ID !== 'undefined' ? CURRENT_USER_ID : 'Guest'}`;
+    }
 }
 
-const doctors = [
-    {
-        id: 1,
-        name: "Dr. Sarah Johnson",
-        specialty: "Cardiology",
-        experience: "15 years experience",
-        rating: 4.9,
-        reviewCount: 126,
-        image: "/placeholder.svg?height=80&width=80",
-        availability: "Available Today",
-        consultationType: "In-Person & Online",
-        priceRange: "$150 - $300",
-    },
-    {
-        id: 2,
-        name: "Dr. Michael Chen",
-        specialty: "Dermatology",
-        experience: "12 years experience",
-        rating: 4.8,
-        reviewCount: 89,
-        image: "/placeholder.svg?height=80&width=80",
-        availability: "Available Today",
-        consultationType: "In-Person & Online",
-        priceRange: "$100 - $250",
-    },
-    {
-        id: 3,
-        name: "Dr. Emily Davis",
-        specialty: "General Medicine",
-        experience: "10 years experience",
-        rating: 4.7,
-        reviewCount: 203,
-        image: "/placeholder.svg?height=80&width=80",
-        availability: "Available Tomorrow",
-        consultationType: "In-Person & Online",
-        priceRange: "$80 - $200",
-    },
-    {
-        id: 4,
-        name: "Dr. Robert Wilson",
-        specialty: "Neurology",
-        experience: "18 years experience",
-        rating: 4.9,
-        reviewCount: 156,
-        image: "/placeholder.svg?height=80&width=80",
-        availability: "Available This Week",
-        consultationType: "In-Person & Online",
-        priceRange: "$200 - $400",
-    },
-    {
-        id: 5,
-        name: "Dr. Lisa Martinez",
-        specialty: "Pediatrics",
-        experience: "8 years experience",
-        rating: 4.8,
-        reviewCount: 94,
-        image: "/placeholder.svg?height=80&width=80",
-        availability: "Available Today",
-        consultationType: "In-Person & Online",
-        priceRange: "$90 - $180",
-    },
-    {
-        id: 6,
-        name: "Dr. James Thompson",
-        specialty: "Orthopedics",
-        experience: "20 years experience",
-        rating: 4.9,
-        reviewCount: 178,
-        image: "/placeholder.svg?height=80&width=80",
-        availability: "Available This Week",
-        consultationType: "In-Person & Online",
-        priceRange: "$180 - $350",
-    },
-]
+// --- 1. DATA FETCHING (Buộc chuyển đổi kiểu dữ liệu sang CHUỖI IN HOA và TRIM) ---
 
-let filteredDoctors = doctors
+async function fetchDoctors() {
+    checkEnvironment();
+    doctorsGrid.innerHTML = `<p class="text-center text-gray-500 py-3 w-full">Đang tải danh sách bác sĩ...</p>`;
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/doctor/all`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch doctors data');
+        }
+        let data = await response.json();
 
-function loadDoctors(doctorsToShow = doctors) {
-    const container = document.getElementById("doctorsGrid")
-    container.innerHTML = doctorsToShow.map((doctor) => createDoctorCard(doctor)).join("")
+        // **QUAN TRỌNG: Làm sạch SpecialtyName cho từng bác sĩ**
+        allDoctors = data.map(doctor => ({
+            ...doctor,
+            // Sử dụng SpecialtyName để lọc
+            specialtyNameCleaned: cleanSpecialtyName(doctor.specialtyName)
+        }));
+
+        // Sau khi tải bác sĩ, chúng ta cần render lại bộ lọc để cập nhật số lượng
+        renderSpecialtyFilters();
+        renderDoctors();
+    } catch (error) {
+        console.error("Fetch Doctors Error:", error);
+        doctorsGrid.innerHTML = `<p class="text-red-500">Không thể tải danh sách bác sĩ. Vui lòng kiểm tra API_BASE_URL.</p>`;
+    }
 }
 
+/**
+ * Lấy danh sách tất cả chuyên khoa từ API.
+ */
+async function fetchSpecialties() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/doctor/specialties`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch specialties data');
+        }
+        let data = await response.json();
+
+        // **QUAN TRỌNG: Làm sạch SpecialtyName cho từng bộ lọc**
+        allSpecialties = data.map(specialty => ({
+            ...specialty,
+            // Sử dụng Tên chuyên khoa để lọc
+            specialtyNameCleaned: cleanSpecialtyName(specialty.name)
+        }));
+
+    } catch (error) {
+        console.error("Fetch Specialties Error:", error);
+        specialtyFilters.innerHTML = `<p class="text-red-500">Không thể tải bộ lọc.</p>`;
+    }
+}
+
+// --- 2. RENDERING FUNCTIONS ---
+
+/**
+ * Tạo HTML cho một thẻ bác sĩ
+ * @param {object} doctor - DoctorViewDto object
+ */
 function createDoctorCard(doctor) {
+    // 1. Ánh xạ dữ liệu đúng
+    const avatar = doctor.avatarUrl || `https://placehold.co/64x64/E0F7FA/00BCD4?text=${doctor.fullName.charAt(0)}`;
+    const ratingValue = doctor.rating || 0;
+    const reviewCount = doctor.reviewCount || 0;
+
+    // 2. Tạo sao rating
+    const ratingStars = Array(5).fill(0).map((_, i) =>
+        `<i class="fas fa-star ${i < Math.round(ratingValue) ? 'text-yellow-400' : 'text-gray-300'}"></i>`
+    ).join('');
+
     return `
-    <div class="doctor-card" onclick="selectDoctor(${doctor.id})">
-      <div class="doctor-header">
-        <img src="${doctor.image}" alt="${doctor.name}" class="doctor-avatar">
-        <div class="doctor-info">
-          <h6>${doctor.name}</h6>
-          <p>${doctor.specialty}</p>
-          <div class="doctor-rating">
-            <i class="fas fa-star" style="color: #fbbf24;"></i>
-            <span>${doctor.rating}</span>
-            <span class="text-muted">(${doctor.reviewCount})</span>
-          </div>
+        <div class="doctor-card" onclick="viewDoctorProfile(${doctor.userId})">
+            <div class="doctor-header">
+                <img src="${avatar}" alt="${doctor.fullName}" class="doctor-avatar">
+                <div class="doctor-info">
+                    <h6>${doctor.fullName}</h6>
+                    <p class="doctor-specialty">${doctor.specialtyName}</p>
+                    <div class="doctor-rating">
+                        ${ratingStars}
+                        <span>${ratingValue.toFixed(1)}</span>
+                        <span class="text-muted">(${reviewCount})</span> 
+                    </div>
+                </div>
+            </div>
+            <div class="doctor-details">
+                <p class="text-muted small">${doctor.experience || 'N/A Kinh nghiệm'}</p>
+                <p class="availability-status">Có sẵn hôm nay</p> 
+                <p class="text-muted small">Tư vấn trực tuyến</p> 
+                <div class="doctor-actions">
+                    <span class="price-range">${doctor.priceRange || 'Liên hệ để biết giá'}</span>
+                    <button class="btn btn-primary btn-sm" onclick="bookWithDoctor(${doctor.userId}); event.stopPropagation();">
+                        Đặt lịch ngay
+                    </button>
+                </div>
+            </div>
         </div>
-      </div>
-      <div class="doctor-details">
-        <p class="text-muted small">${doctor.experience}</p>
-        <p class="availability-status">${doctor.availability}</p>
-        <p class="text-muted small">${doctor.consultationType}</p>
-        <div class="doctor-actions">
-          <span class="price-range">${doctor.priceRange}</span>
-          <button class="btn btn-primary btn-sm" onclick="bookWithDoctor(${doctor.id}); event.stopPropagation();">
-            Book Now
-          </button>
-        </div>
-      </div>
-    </div>
-  `
+    `;
 }
 
-function loadSpecialtyFilters() {
-    const specialties = [...new Set(doctors.map((doctor) => doctor.specialty))]
-    const container = document.getElementById("specialtyFilters")
+/**
+ * Render danh sách bác sĩ đã lọc/tìm kiếm
+ */
+function renderDoctors() {
+    let filteredDoctors = allDoctors;
 
-    container.innerHTML = `
-    <div class="filter-item active" onclick="filterBySpecialty('all')">
-      <span>All Specialties</span>
-      <span class="filter-count">${doctors.length}</span>
-    </div>
-    ${specialties
-            .map((specialty) => {
-                const count = doctors.filter((doctor) => doctor.specialty === specialty).length
-                return `
-        <div class="filter-item" onclick="filterBySpecialty('${specialty}')">
-          <span>${specialty}</span>
-          <span class="filter-count">${count}</span>
-        </div>
-      `
-            })
-            .join("")}
-  `
-}
+    // 1. Lọc theo chuyên khoa (Sử dụng Tên đã được làm sạch)
+    if (activeSpecialtyName !== null) {
+        // So sánh nghiêm ngặt giữa Tên chuyên khoa của bác sĩ và Tên chuyên khoa đang hoạt động
+        filteredDoctors = filteredDoctors.filter(d => d.specialtyNameCleaned === activeSpecialtyName);
+    }
 
-function filterBySpecialty(specialty) {
-    // Update active filter
-    document.querySelectorAll(".filter-item").forEach((item) => {
-        item.classList.remove("active")
-    })
-    event.currentTarget.classList.add("active")
+    // 2. Lọc theo tìm kiếm
+    if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        filteredDoctors = filteredDoctors.filter(d =>
+            d.fullName.toLowerCase().includes(query) ||
+            d.specialtyName.toLowerCase().includes(query) ||
+            (d.qualifications && d.qualifications.toLowerCase().includes(query))
+        );
+    }
 
-    // Filter doctors
-    if (specialty === "all") {
-        filteredDoctors = doctors
+    if (filteredDoctors.length === 0) {
+        doctorsGrid.innerHTML = `<p class="text-center text-gray-500 py-8 w-full">Không tìm thấy bác sĩ nào phù hợp với tiêu chí của bạn.</p>`;
     } else {
-        filteredDoctors = doctors.filter((doctor) => doctor.specialty === specialty)
-    }
-
-    loadDoctors(filteredDoctors)
-}
-
-function setupSearch() {
-    const searchInput = document.getElementById("searchInput")
-
-    searchInput.addEventListener("input", (e) => {
-        const searchTerm = e.target.value.toLowerCase()
-
-        const searchResults = filteredDoctors.filter(
-            (doctor) => doctor.name.toLowerCase().includes(searchTerm) || doctor.specialty.toLowerCase().includes(searchTerm),
-        )
-
-        loadDoctors(searchResults)
-    })
-}
-
-function selectDoctor(doctorId) {
-    const doctor = doctors.find((d) => d.id === doctorId)
-    if (doctor) {
-        alert(`Selected ${doctor.name} - ${doctor.specialty}`)
+        doctorsGrid.innerHTML = filteredDoctors.map(createDoctorCard).join('');
     }
 }
 
-function bookWithDoctor(doctorId) {
-    localStorage.setItem("selectedDoctorId", doctorId)
-    window.location.href = "appointments-modern.html"
+/**
+ * Render các nút lọc theo chuyên khoa (SỬ DỤNG Tên đã làm sạch làm ID)
+ */
+function renderSpecialtyFilters() {
+    // 1. Tính toán số lượng cho nút "All" (tất cả)
+    const allCount = allDoctors.length;
+
+    // 2. Thêm nút "All"
+    const allButton = `
+        <div class="filter-item ${activeSpecialtyName === null ? 'active' : ''}" data-specialty-name="null">
+            <span>Tất cả Chuyên khoa</span>
+            <span class="filter-count">${allCount}</span>
+        </div>
+    `;
+
+    // 3. Render các nút chuyên khoa
+    const specialtyButtons = allSpecialties.map(s => {
+        // So sánh nghiêm ngặt Tên chuyên khoa đã làm sạch
+        const count = allDoctors.filter(d => d.specialtyNameCleaned === s.specialtyNameCleaned).length;
+
+        return `
+            <div class="filter-item ${activeSpecialtyName === s.specialtyNameCleaned ? 'active' : ''}" data-specialty-name="${s.specialtyNameCleaned}">
+                <span>${s.name}</span>
+                <span class="filter-count">${count}</span>
+            </div>
+        `;
+    }).join('');
+
+    specialtyFilters.innerHTML = allButton + specialtyButtons;
 }
 
-function logout() {
-    if (confirm("Are you sure you want to logout?")) {
-        localStorage.clear()
-        window.location.href = "index.html"
-    }
+// --- 3. EVENT HANDLERS ---
+
+// Hàm chuyển hướng đến trang chi tiết bác sĩ
+function viewDoctorProfile(userId) {
+    console.log(`Chuyển đến hồ sơ của Bác sĩ ID: ${userId}`);
+    // window.location.href = `/doctor/profile/${userId}`; 
 }
+
+// Hàm giả định đặt lịch hẹn
+function bookWithDoctor(userId) {
+    console.log(`Đang cố gắng đặt lịch với Bác sĩ ID: ${userId}`);
+    // Logic đặt lịch thực tế
+}
+
+
+// --- 4. INITIALIZATION ---
+
+document.addEventListener('DOMContentLoaded', () => {
+    updateUserInfo();
+
+    // Tải danh sách chuyên khoa trước
+    fetchSpecialties();
+    // Tải danh sách bác sĩ (Sau đó sẽ tự động gọi renderSpecialtyFilters và renderDoctors)
+    fetchDoctors();
+
+    // Xử lý sự kiện tìm kiếm
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            searchQuery = e.target.value.trim();
+            renderDoctors();
+        });
+    }
+
+    // Xử lý sự kiện lọc (Delegation)
+    if (specialtyFilters) {
+        specialtyFilters.addEventListener('click', (e) => {
+            const item = e.target.closest('.filter-item');
+
+            if (item) {
+                // Lấy TÊN đã được làm sạch từ thuộc tính data-specialty-name
+                const name = item.getAttribute('data-specialty-name');
+
+                // Cập nhật state activeSpecialtyName
+                activeSpecialtyName = name === 'null' ? null : name;
+
+                // Render lại cả bộ lọc và danh sách bác sĩ để cập nhật trạng thái 'active' và dữ liệu
+                renderSpecialtyFilters();
+                renderDoctors();
+            }
+        });
+    }
+});

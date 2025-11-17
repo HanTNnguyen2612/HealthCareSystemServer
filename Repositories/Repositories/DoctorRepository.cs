@@ -19,6 +19,8 @@ namespace Repositories.Repositories
             => await DoctorDAO.UpdateDoctorAsync(doctor);
         public async Task<List<Doctor>> GetBySpecialtyAsync(int specialtyId)
             => await DoctorDAO.GetBySpecialtyAsync(specialtyId);
+
+        public async Task<IEnumerable<Doctor>> GetAll() => await DoctorDAO.GetAll();
     }
 }
 

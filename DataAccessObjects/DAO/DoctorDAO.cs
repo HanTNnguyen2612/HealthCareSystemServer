@@ -36,5 +36,15 @@ namespace DataAccessObjects.DAO
                 .Where(d => d.SpecialtyId == specialtyId)
                 .ToListAsync();
         }
+
+        public static async Task<IEnumerable<Doctor>> GetAll()
+        {
+            var _context = new HealthCareSystemContext();
+
+            return await _context.Doctors
+                .Include(d => d.User)
+                .Include(d => d.Specialty)
+                .ToListAsync();
+        }
     }
 }
