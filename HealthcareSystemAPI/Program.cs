@@ -72,6 +72,7 @@ builder.Services.AddScoped<IDoctorService, DoctorService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<IConversationService, ConversationService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
+builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 
 // ------------------ DAO DI ----------------------
 builder.Services.AddScoped<PatientDAO>();

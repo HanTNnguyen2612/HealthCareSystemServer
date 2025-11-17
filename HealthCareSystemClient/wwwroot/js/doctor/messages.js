@@ -2,6 +2,7 @@
 let currentConversation = null
 let conversations = []
 let connection = null
+let isUploading = false // Flag to prevent duplicate uploads
 
 // Initialize SignalR connection
 async function initializeSignalR() {
@@ -154,7 +155,14 @@ function renderConversations() {
         .map((conversation) => {
             const lastMessage = conversation.lastMessage
             const timeAgo = lastMessage ? formatTimeAgo(lastMessage.sentAt) : 'No messages'
-            const preview = lastMessage ? (lastMessage.content.length > 50 ? lastMessage.content.substring(0, 50) + '...' : lastMessage.content) : 'Start conversation'
+            let preview = 'Start conversation'
+            if (lastMessage) {
+                if (lastMessage.messageType === 'image') {
+                    preview = '📷 Image'
+                } else {
+                    preview = lastMessage.content.length > 50 ? lastMessage.content.substring(0, 50) + '...' : lastMessage.content
+                }
+            }
             
             // Get patient info if available
             const patientInfo = conversation.isDoctor ? '' : (conversation.specialty || 'Patient')
@@ -310,9 +318,19 @@ function renderMessages(messages) {
         .map((message) => {
             const isOwn = message.senderId === window.userId
             const time = formatMessageTime(message.sentAt)
+            const isImage = message.messageType === 'image'
+            
+            let messageContent = ''
+            if (isImage) {
+                messageContent = `<div class="message-image">
+                    <img src="${escapeHtml(message.content)}" alt="Image" data-image-url="${escapeHtml(message.content)}" class="message-image-clickable" style="max-width: 300px; max-height: 300px; border-radius: 8px; cursor: pointer;">
+                </div>`
+            } else {
+                messageContent = `<div class="message-text">${escapeHtml(message.content)}</div>`
+            }
             
             return `
-                <div class="message ${isOwn ? 'user-message' : 'doctor-message'}">
+                <div class="message ${isOwn ? 'user-message' : 'doctor-message'}" data-message-id="${message.messageId}">
                     <div class="message-avatar">
                         <img src="${isOwn ? '/placeholder.svg?height=36&width=36' : currentConversation.otherUserAvatar}" alt="${isOwn ? 'You' : currentConversation.otherUserName}">
                     </div>
@@ -321,7 +339,7 @@ function renderMessages(messages) {
                             <span class="message-sender">${isOwn ? 'You' : currentConversation.otherUserName}</span>
                             <span class="message-time">${time}</span>
                         </div>
-                        <div class="message-text">${escapeHtml(message.content)}</div>
+                        ${messageContent}
                     </div>
                 </div>
             `
@@ -330,11 +348,19 @@ function renderMessages(messages) {
 
     // Scroll to bottom
     container.scrollTop = container.scrollHeight
+    // Note: Image click handling is done via event delegation in setupEventListeners()
 }
 
 // Add message to UI (for real-time updates)
 function addMessageToUI(message) {
     const container = document.getElementById('chatMessages')
+    
+    // Check if message already exists to prevent duplicates
+    const existingMessage = container.querySelector(`[data-message-id="${message.messageId}"]`)
+    if (existingMessage) {
+        console.log('Message already displayed, skipping duplicate:', message.messageId)
+        return
+    }
     
     // Remove empty chat message if exists
     const emptyChat = container.querySelector('.empty-chat')
@@ -344,9 +370,20 @@ function addMessageToUI(message) {
 
     const isOwn = message.senderId === window.userId
     const time = formatMessageTime(message.sentAt)
+    const isImage = message.messageType === 'image'
+    
+    let messageContent = ''
+    if (isImage) {
+        messageContent = `<div class="message-image">
+            <img src="${escapeHtml(message.content)}" alt="Image" data-image-url="${escapeHtml(message.content)}" class="message-image-clickable" style="max-width: 300px; max-height: 300px; border-radius: 8px; cursor: pointer;">
+        </div>`
+    } else {
+        messageContent = `<div class="message-text">${escapeHtml(message.content)}</div>`
+    }
     
     const messageDiv = document.createElement('div')
     messageDiv.className = `message ${isOwn ? 'user-message' : 'doctor-message'}`
+    messageDiv.setAttribute('data-message-id', message.messageId)
     messageDiv.innerHTML = `
         <div class="message-avatar">
             <img src="${isOwn ? '/placeholder.svg?height=36&width=36' : currentConversation.otherUserAvatar}" alt="${isOwn ? 'You' : currentConversation.otherUserName}">
@@ -356,11 +393,12 @@ function addMessageToUI(message) {
                 <span class="message-sender">${isOwn ? 'You' : currentConversation.otherUserName}</span>
                 <span class="message-time">${time}</span>
             </div>
-            <div class="message-text">${escapeHtml(message.content)}</div>
+            ${messageContent}
         </div>
     `
     
     container.appendChild(messageDiv)
+    // Note: Image click handling is done via event delegation in setupEventListeners()
     container.scrollTop = container.scrollHeight
 }
 
@@ -447,7 +485,8 @@ function updateConversationLastMessage(conversationId, message) {
         conversation.lastMessage = {
             content: message.content,
             sentAt: message.sentAt,
-            senderId: message.senderId
+            senderId: message.senderId,
+            messageType: message.messageType
         }
         if (message.senderId !== window.userId) {
             conversation.unreadCount = (conversation.unreadCount || 0) + 1
@@ -473,6 +512,19 @@ function setupEventListeners() {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()
                 sendMessage(e)
+            }
+        })
+    }
+
+    // Event delegation for image clicks
+    const chatMessages = document.getElementById('chatMessages')
+    if (chatMessages) {
+        chatMessages.addEventListener('click', (e) => {
+            if (e.target.classList.contains('message-image-clickable')) {
+                const imageUrl = e.target.getAttribute('data-image-url')
+                if (imageUrl) {
+                    openImageModal(imageUrl)
+                }
             }
         })
     }
@@ -544,19 +596,135 @@ function scheduleAppointment() {
     window.location.href = `/Doctor/Appointments?patient=${currentConversation.otherUserId}`
 }
 
+// Upload image function
+async function uploadImage(file) {
+    // Prevent duplicate uploads
+    if (isUploading) {
+        console.log('Upload already in progress, ignoring duplicate request')
+        return
+    }
+
+    if (!currentConversation) {
+        showNotification('Please select a conversation first', 'warning')
+        return
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+        showNotification('Invalid file type. Only image files (jpg, jpeg, png, gif, webp) are allowed.', 'warning')
+        return
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+        showNotification('File size exceeds 10MB limit.', 'warning')
+        return
+    }
+
+    isUploading = true
+    try {
+        const formData = new FormData()
+        formData.append('file', file)
+
+        const response = await fetch(`${window.apiBaseUrl}/api/conversations/${currentConversation.conversationId}/messages/upload-image`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${window.userToken}`
+            },
+            body: formData
+        })
+
+        if (!response.ok) {
+            const errorText = await response.text()
+            throw new Error(errorText || 'Failed to upload image')
+        }
+
+        // Don't call addMessageToUI here - SignalR will handle it via ReceiveMessage
+        // This prevents duplicate messages in the UI
+        const message = await response.json()
+        console.log('Image uploaded successfully, waiting for SignalR to display message')
+    } catch (error) {
+        console.error('Error uploading image:', error)
+        showNotification('Failed to upload image. Please try again.', 'danger')
+    } finally {
+        isUploading = false
+    }
+}
+
 function attachFile() {
-    console.log('Attaching file')
+    console.log('attachFile() called')
+    
+    if (!currentConversation) {
+        showNotification('Please select a conversation first', 'warning')
+        return
+    }
+
+    // Prevent multiple file dialogs
+    if (isUploading) {
+        console.log('Upload in progress, please wait...')
+        return
+    }
+
     const input = document.createElement('input')
     input.type = 'file'
-    input.accept = 'image/*,.pdf,.doc,.docx'
-    input.onchange = (e) => {
+    input.accept = 'image/*'
+    input.style.display = 'none'
+    
+    // Remove previous input if exists to prevent duplicate handlers
+    const existingInput = document.getElementById('fileInput')
+    if (existingInput) {
+        existingInput.remove()
+    }
+    
+    input.id = 'fileInput'
+    
+    // Use once option to ensure handler only fires once
+    input.addEventListener('change', function(e) {
         const file = e.target.files[0]
         if (file) {
-            console.log('File selected:', file.name)
-            // Handle file upload
+            console.log('File selected:', file.name, file.type, file.size)
+            // Clear the input value to allow selecting the same file again
+            this.value = ''
+            uploadImage(file)
         }
-    }
+        // Remove the input after use
+        setTimeout(() => {
+            if (this.parentNode) {
+                this.remove()
+            }
+        }, 100)
+    }, { once: true })
+    
+    document.body.appendChild(input)
     input.click()
+}
+
+// Open image in modal for full view
+function openImageModal(imageUrl) {
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('imageModal')
+    if (!modal) {
+        modal = document.createElement('div')
+        modal.id = 'imageModal'
+        modal.className = 'modal fade'
+        document.body.appendChild(modal)
+    }
+    
+    // Update modal content
+    modal.innerHTML = `
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-transparent border-0">
+                <div class="modal-body p-0 text-center">
+                    <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" style="z-index: 1051;"></button>
+                    <img src="${escapeHtml(imageUrl)}" alt="Full size image" class="img-fluid" style="max-height: 90vh;">
+                </div>
+            </div>
+        </div>
+    `
+
+    const bsModal = new bootstrap.Modal(modal)
+    bsModal.show()
 }
 
 function startNewConversation() {
