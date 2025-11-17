@@ -10,6 +10,7 @@ namespace Services.Interface
 {
     public interface IDoctorService
     {
+        Task<IEnumerable<DoctorProfileDTO>> GetAllDoctors();
         Task<DoctorProfileDTO?> GetDoctorProfileAsync(int userId);
         Task<bool> UpdateDoctorProfileAsync(DoctorProfileDTO doctorDto);
         Task<List<Doctor>> GetBySpecialtyAsync(int specialtyId);

@@ -55,5 +55,32 @@ namespace Services.Services
 
         public async Task<List<Doctor>> GetBySpecialtyAsync(int specialtyId) =>
             await _doctorRepository.GetBySpecialtyAsync(specialtyId);
+
+        public async Task<IEnumerable<DoctorProfileDTO>> GetAllDoctors() 
+        {
+            var doctors = await _doctorRepository.GetAll();
+
+            var profileList = doctors.Select(doctor =>
+            {
+                if (doctor.User == null) return null;
+
+                return new DoctorProfileDTO
+                {
+                    UserId = doctor.UserId,
+                    FullName = doctor.User.FullName ?? string.Empty,
+                    Email = doctor.User.Email ?? string.Empty,
+                    PhoneNumber = doctor.User.PhoneNumber ?? string.Empty,
+                    AvatarUrl = doctor.User.AvatarUrl,
+                    SpecialtyName = doctor.Specialty?.Name,
+                    Rating = doctor.Rating,
+                    Description = doctor.Bio 
+                };
+            })
+            .Where(dto => dto != null)
+            .ToList();
+
+            return profileList;
+        }
     }
 }
+
