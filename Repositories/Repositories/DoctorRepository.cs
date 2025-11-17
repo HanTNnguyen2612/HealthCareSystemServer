@@ -1,5 +1,6 @@
 ﻿using BusinessObjects.Domain;
 using DataAccessObjects.DAO;
+using Microsoft.EntityFrameworkCore;
 using Repositories.Interface;
 using System;
 using System.Collections.Generic;
@@ -11,18 +12,13 @@ namespace Repositories.Repositories
 {
     public class DoctorRepository : IDoctorRepository
     {
-        private readonly DoctorDAO _doctorDAO;
+        public async Task<Doctor?> GetDoctorByUserIdAsync(int userId)
+            => await DoctorDAO.GetDoctorByUserIdAsync(userId);
 
-        public DoctorRepository(DoctorDAO doctorDAO)
-        {
-            _doctorDAO = doctorDAO;
-        }
-
-        public Task<Doctor?> GetDoctorByUserIdAsync(int userId)
-            => _doctorDAO.GetDoctorByUserIdAsync(userId);
-
-        public Task UpdateDoctorAsync(Doctor doctor)
-            => _doctorDAO.UpdateDoctorAsync(doctor);
+        public async Task UpdateDoctorAsync(Doctor doctor)
+            => await DoctorDAO.UpdateDoctorAsync(doctor);
+        public async Task<List<Doctor>> GetBySpecialtyAsync(int specialtyId)
+            => await DoctorDAO.GetBySpecialtyAsync(specialtyId);
     }
 }
 

@@ -1,4 +1,4 @@
-using BusinessObjects.Domain;
+﻿using BusinessObjects.Domain;
 using DataAccessObjects.DAO;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.SignalR;
@@ -15,21 +15,34 @@ using HealthcareSystemAPI.Converters;
 using HealthcareSystemAPI.Hubs;
 using BusinessObjects.DataTransferObjects;
 using BusinessObjects.DataTransferObjects.Googles;
+using BusinessObjects.DataTransferObjects.AI;
+using Services.Service;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// FIX: Hợp nhất tất cả các policy CORS vào một block AddCors duy nhất.
 builder.Services.AddCors(options =>
 {
+    // Policy cho Client MVC (cổng 7206) - Dùng cho API calls chính
+    options.AddPolicy(name: "AllowSpecificOrigin",
+        policy =>
+        {
+            policy.WithOrigins("https://localhost:7206") // 🎯 Client của bạn
+                  .AllowAnyHeader()
+                  .AllowAnyMethod(); // Quan trọng: Cho phép DELETE và OPTIONS
+        });
+
+    // Policy cho các cổng khác (ví dụ: 7002, nếu cần cho SignalR hoặc testing)
     options.AddPolicy("AllowLocalhost",
         policy =>
         {
-            policy.WithOrigins("https://localhost:7002", "http://localhost:7002") 
+            policy.WithOrigins("https://localhost:7002", "http://localhost:7002")
                   .AllowAnyHeader()
                   .AllowAnyMethod()
                   .AllowCredentials();
         });
 });
+
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -42,11 +55,14 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddHttpClient();
+
 builder.Services.Configure<GoogleSettings>(builder.Configuration.GetSection("GoogleAuth"));
 
 builder.Services.AddDbContext<HealthCareSystemContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnectionString")));
-
+builder.Services.Configure<OpenAIOptions>(builder.Configuration.GetSection("Gemini"));
+builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
 // ------------------ Repository DI ----------------------
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<ITokenRepository, TokenRepository>();
@@ -55,6 +71,9 @@ builder.Services.AddScoped<IPatientRepository, PatientRepository>();
 builder.Services.AddScoped<IDoctorRepository, DoctorRepository>();
 builder.Services.AddScoped<IConversationRepository, ConversationRepository>();
 builder.Services.AddScoped<IMessageRepository, MessageRepository>();
+builder.Services.AddScoped<IAiMessageRepository, AiMessageRepository>();
+builder.Services.AddScoped<IAiConversationRepository, AiConversationRepository>();
+builder.Services.AddScoped<ISpecialtyRepository, SpecialtyRepository>();
 
 // ------------------ Service DI ----------------------
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -65,6 +84,9 @@ builder.Services.AddScoped<IDoctorService, DoctorService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<IConversationService, ConversationService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
+builder.Services.AddScoped<IAiConversationService, AiConversationService>();
+builder.Services.AddScoped<IAiMessageService, AiMessageService>();
+builder.Services.AddScoped<ISpecialtyService, SpecialtyService>();
 
 // ------------------ DAO DI ----------------------
 builder.Services.AddScoped<PatientDAO>();
@@ -114,7 +136,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 var app = builder.Build();
-app.UseCors("AllowLocalhost");
+
+
+app.UseCors("AllowSpecificOrigin");
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -125,7 +150,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
-
+// app.UseCors("AllowSpecificOrigin"); // BỊ XÓA (đã gọi ở trên)
 app.UseAuthorization();
 
 app.MapControllers();
