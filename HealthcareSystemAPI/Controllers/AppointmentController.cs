@@ -25,6 +25,13 @@ namespace HealthcareSystemAPI.Controllers
             return Ok(appointments);
         }
 
+        [HttpGet("TimeOff/{id}")]
+        public async Task<IActionResult> GetTimeOffAll(int id)
+        {
+            var appointments = await _appointmentService.GetTimeOffByDoctoridAsync(id);
+            return Ok(appointments);
+        }
+
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
@@ -107,7 +114,7 @@ namespace HealthcareSystemAPI.Controllers
 
         [HttpPatch("Confirmed")]
         public async Task<IActionResult> RequestConfirm([FromBody] ConfirmRequest dto)
-        {       
+        {
             var result = await _appointmentService.RequestConfirm(dto);
             if (result == null) return NotFound(new { message = "Appointment not found" });
             return Ok(result);
@@ -185,6 +192,17 @@ namespace HealthcareSystemAPI.Controllers
             return Ok(result);
         }
 
-        
+
+        [HttpPost("week")]
+
+        public async Task<IActionResult> GetAppointmentsByWeek([FromBody] WeekAppointmentRequest dto)
+        {
+            var result = await _appointmentService.GetAppointmentsByWeekAsync(dto.DoctorId, dto.WeekStart);
+            return Ok(result);
+                    
+        }
+
+
+
     }
 }

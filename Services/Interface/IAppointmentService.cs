@@ -39,5 +39,8 @@ namespace Services.Interface
         Task<bool?> RequestConfirm(ConfirmRequest dto);
 
         Task<bool?> RequestCompleted(RejectRequest dto);
+
+        Task<IEnumerable<TimeOff>> GetTimeOffByDoctoridAsync(int doctorid);
+        Task<List<AppointmentResponse>> GetAppointmentsByWeekAsync(int doctorId, DateTime weekStart);
     }
 }
