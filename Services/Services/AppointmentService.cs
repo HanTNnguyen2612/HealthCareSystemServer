@@ -314,6 +314,32 @@ namespace Services.Services
             return results;
         }
 
+        public async Task<List<AppointmentResponse>> GetAppointmentsByWeekAsync(int doctorId, DateTime weekStart)
+        {
+            var appointment = _appointmentDAO.GetAppointmentsByWeekAsync(doctorId, weekStart);
+            var results = new List<AppointmentResponse>();
+            foreach (var app in await appointment)
+            {
+                var doctor = await _doctorService.GetDoctorProfileAsync(app.DoctorUserId);
+                var patient = await _patientService.GetPatientProfileAsync(app.PatientUserId);
+                results.Add(new AppointmentResponse
+                {
+                    doctorid = app.DoctorUserId,
+                    patientid = app.PatientUserId,
+                    AppointmentId = app.AppointmentId,
+                    DoctorName = doctor.FullName,
+                    PatientName = patient.FullName,
+                    AppointmentDateTime = app.AppointmentDateTime,
+                    Notes = app.Notes,
+                    CreatedAt = app.CreatedAt,
+                    UpdatedAt = app.UpdatedAt,
+                    Status = app.Status
+                });
+            }
+            return results;
+
+        }
+
 
         public async Task<List<Specialty?>> GetAllSpecialtiesAsync()
         {
@@ -370,6 +396,13 @@ namespace Services.Services
             appointment.UpdatedAt = DateTime.UtcNow;
             await _appointmentDAO.UpdateAsync(appointment);
             return true;
+        }
+
+
+        public async Task<IEnumerable<TimeOff>> GetTimeOffByDoctoridAsync(int doctorid)
+        {
+            var result = await _appointmentDAO.GetTimeOffByDoctoridAsync(doctorid);
+            return result;
         }
     }
 }

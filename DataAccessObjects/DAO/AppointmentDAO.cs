@@ -134,5 +134,32 @@ namespace DataAccessObjects.DAO
                 }).ToListAsync();
             return users ?? new List<DoctorSpecialtyResponse>();
         }
+
+
+
+        public async Task<List<Appointment>> GetAppointmentsByWeekAsync(int doctorId, DateTime weekStart)
+        {
+            var weekEnd = weekStart.AddDays(7);
+            return await _context.Appointments
+                .Include(a => a.DoctorUser)
+                    .ThenInclude(d => d.User)
+                .Include(a => a.DoctorUser)
+                    .ThenInclude(d => d.Specialty)
+                .Include(a => a.PatientUser)
+                    .ThenInclude(p => p.User)
+                .Where(a => a.DoctorUserId == doctorId
+                        && a.AppointmentDateTime >= weekStart
+                        && a.AppointmentDateTime < weekEnd
+                        && a.Status != "Cancelled")
+                .OrderBy(a => a.AppointmentDateTime)
+                .ToListAsync();
+        }
+
+
+        public  async Task<IEnumerable<TimeOff>> GetTimeOffByDoctoridAsync(int doctorid)
+        {
+            var restult = await _context.TimeOffs.Where(t => t.DoctorUserId == doctorid).ToListAsync();
+            return restult;
+        }
     }
 }
