@@ -1,6 +1,4 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@model BusinessObjects.DataTransferObjects.AppointmentDTOs.CalendarViewModel
 @{
     Layout = "_LayoutDoctor";
     ViewData["Title"] = "Calendar";
@@ -10,77 +8,125 @@
     <!-- Header -->
     <header class="header">
         <h1 class="header-title">Calendar</h1>
-        <div class="search-container">
+        @* <div class="search-container">
             <i class="fas fa-search search-icon"></i>
             <input type="text" class="search-input" placeholder="Search appointments..." id="searchInput">
-        </div>
+        </div> *@
         <div class="header-actions">
-            <button class="btn btn-primary" onclick="openNewAppointmentModal()">
-                <i class="fas fa-plus"></i>
-                New Appointment
-            </button>
             <button class="notification-btn">
                 <i class="fas fa-bell"></i>
                 <span class="notification-badge">5</span>
             </button>
-            <div class="user-profile" onclick="window.location.href='doctor-profile.html'">
-                <img src="/placeholder.svg?height=32&width=32" alt="Doctor" class="user-avatar">
+            <a class="user-profile" asp-controller="Doctor" asp-action="Profile" style="text-decoration: none;">
+                <img src="@ViewBag.Doctor.AvatarUrl" alt="Doctor" class="user-avatar">
                 <div class="user-info">
-                    <h6 id="doctorName">Dr. Sarah Johnson</h6>
-                    <p>Cardiologist</p>
+                    <h6 id="">@ViewBag.Doctor.FullName</h6>
+                    <p>@ViewBag.Doctor.SpecialtyName</p>
                 </div>
-            </div>
+            </a>
         </div>
     </header>
 
     <!-- Content -->
     <div class="content">
-        <!-- Calendar Controls -->
-        <div class="dashboard-card">
-            <div class="card-content">
-                <div class="calendar-controls">
-                    <div class="calendar-navigation">
-                        <button class="btn btn-outline-primary" onclick="previousMonth()">
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                        <h4 id="currentMonth">January 2024</h4>
-                        <button class="btn btn-outline-primary" onclick="nextMonth()">
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
+        <div style="flex: 1;">
+            <!-- Calendar Controls - Above the calendar -->
+            <div style="background: #fff; padding: 20px; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border: 3px solid #007bff;">
+                <h5 style="margin: 0 0 15px 0; color: #333;">Calendar Controls</h5>
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                    <!-- Navigation -->
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <a href="@Url.Action("Calendar", new { year = Model.CurrentMonth.AddMonths(-1).Year, month = Model.CurrentMonth.AddMonths(-1).Month })"
+                           style="display: inline-flex; align-items: center; padding: 10px 15px; background: #007bff; color: white; border-radius: 8px; text-decoration: none; font-weight: 500;">
+                            ◀ Previous
+                        </a>
+                        <h4 style="margin: 0; font-weight: 600; color: #333; min-width: 200px; text-align: center; font-size: 20px;">
+                            @Model.CurrentMonth.ToString("MMMM yyyy")
+                        </h4>
+                        <a href="@Url.Action("Calendar", new { year = Model.CurrentMonth.AddMonths(1).Year, month = Model.CurrentMonth.AddMonths(1).Month })"
+                           style="display: inline-flex; align-items: center; padding: 10px 15px; background: #007bff; color: white; border-radius: 8px; text-decoration: none; font-weight: 500;">
+                            Next ▶
+                        </a>
                     </div>
-                    <div class="calendar-view-options">
-                        <div class="btn-group" role="group">
-                            <button type="button" class="btn btn-outline-secondary" onclick="setCalendarView('month')">Month</button>
-                            <button type="button" class="btn btn-outline-secondary active" onclick="setCalendarView('week')">Week</button>
-                            <button type="button" class="btn btn-outline-secondary" onclick="setCalendarView('day')">Day</button>
+
+                    <!-- View Options -->
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="display: flex; border-radius: 8px; overflow: hidden; border: 2px solid #6c757d;">
+                            <button type="button" onclick="setCalendarView('month')"
+                                    style="padding: 10px 20px; font-size: 14px; font-weight: 500; border: none; background: #6c757d; color: white; cursor: pointer;">
+                                Month
+                            </button>
+                            <button type="button" onclick="setCalendarView('week')"
+                                    style="padding: 10px 20px; font-size: 14px; font-weight: 500; border: none; background: white; color: #6c757d; cursor: pointer;">
+                                Week
+                            </button>
+                            <button type="button" onclick="setCalendarView('day')"
+                                    style="padding: 10px 20px; font-size: 14px; font-weight: 500; border: none; background: white; color: #6c757d; cursor: pointer;">
+                                Day
+                            </button>
                         </div>
+
+                        <a href="@Url.Action("Calendar")"
+                           style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; background: #17a2b8; color: white; border-radius: 8px; text-decoration: none; font-weight: 500;">
+                            📅 Today
+                        </a>
                     </div>
-                    <button class="btn btn-outline-info" onclick="goToToday()">
-                        <i class="fas fa-calendar-day"></i>
-                        Today
-                    </button>
                 </div>
             </div>
-        </div>
 
-        <!-- Calendar Grid -->
-        <div class="dashboard-card">
-            <div class="card-content">
-                <div class="calendar-container">
-                    <!-- Calendar Header -->
-                    <div class="calendar-header">
-                        <div class="calendar-day-header">Sun</div>
-                        <div class="calendar-day-header">Mon</div>
-                        <div class="calendar-day-header">Tue</div>
-                        <div class="calendar-day-header">Wed</div>
-                        <div class="calendar-day-header">Thu</div>
-                        <div class="calendar-day-header">Fri</div>
-                        <div class="calendar-day-header">Sat</div>
-                    </div>
+            <!-- Calendar Grid -->
+            <div class="dashboard-card">
+                <div class="card-content">
+                    <div class="calendar-container">
+                        <!-- Calendar Header -->
+                        <div class="calendar-header">
+                            <div class="calendar-day-header" style="background: #f8fafc !important;">Sun</div>
+                            <div class="calendar-day-header" style="background: #f8fafc !important;">Mon</div>
+                            <div class="calendar-day-header" style="background: #f8fafc !important;">Tue</div>
+                            <div class="calendar-day-header" style="background: #f8fafc !important;">Wed</div>
+                            <div class="calendar-day-header" style="background: #f8fafc !important;">Thu</div>
+                            <div class="calendar-day-header" style="background: #f8fafc !important;">Fri</div>
+                            <div class="calendar-day-header" style="background: #f8fafc !important;">Sat</div>
+                        </div>
 
-                    <!-- Calendar Body -->
-                    <div class="calendar-body" id="calendarBody">
-                        <!-- Generated by JavaScript -->
+                        <!-- Calendar Body -->
+                        <div class="calendar-body" id="calendarBody">
+                            @for (int week = 0; week < 6; week++)
+                            {
+                                <div class="calendar-week">
+                                    @for (int day = 0; day < 7; day++)
+                                    {
+                                        var dayIndex = week * 7 + day;
+                                        if (dayIndex < Model.CalendarDays.Count)
+                                        {
+                                            var calendarDay = Model.CalendarDays[dayIndex];
+                                            <div class="calendar-day @(calendarDay.IsCurrentMonth ? "" : "other-month") @(calendarDay.IsToday ? "today" : "")">
+                                                <div class="calendar-date">@calendarDay.Date.Day</div>
+                                                @if (calendarDay.Appointments.Any())
+                                                {
+                                                    <div class="appointments">
+                                                        @foreach (var appointment in calendarDay.Appointments.Take(3))
+                                                        {
+                                                            <div class="appointment-item appointment-@appointment.StatusColor"
+                                                                 title="@appointment.TimeDisplay - @appointment.PatientName">
+                                                                <span class="appointment-time">@appointment.TimeDisplay</span>
+                                                                <span class="appointment-patient">@appointment.PatientName</span>
+                                                            </div>
+                                                        }
+                                                        @if (calendarDay.Appointments.Count > 3)
+                                                        {
+                                                            <div class="more-appointments">
+                                                                +@(calendarDay.Appointments.Count - 3) more
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                            }
+                        </div>
                     </div>
                 </div>
             </div>
@@ -91,11 +137,30 @@
             <div class="dashboard-card">
                 <div class="card-header">
                     <h5 class="card-title">Today's Schedule</h5>
-                    <span class="schedule-date" id="todayDate">January 20, 2024</span>
+                    <span class="schedule-date" id="todayDate">@DateTime.Today.ToString("MMMM dd, yyyy")</span>
                 </div>
                 <div class="card-content">
                     <div class="today-schedule-list" id="todayScheduleList">
-                        <!-- Populated by JavaScript -->
+                        @if (Model.TodayAppointments.Any())
+                        {
+                            @foreach (var appointment in Model.TodayAppointments)
+                            {
+                                <div class="schedule-item">
+                                    <div class="schedule-time">@appointment.TimeDisplay</div>
+                                    <div class="schedule-details">
+                                        <h6 class="patient-name">@appointment.PatientName</h6>
+                                        <p class="appointment-type">@appointment.AppointmentType</p>
+                                        <span class="badge badge-@appointment.StatusColor">@appointment.Status</span>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="no-appointments">
+                                <p class="text-muted">No appointments for today</p>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
@@ -107,7 +172,31 @@
                 </div>
                 <div class="card-content">
                     <div class="upcoming-appointments" id="upcomingAppointments">
-                        <!-- Populated by JavaScript -->
+                        @if (Model.UpcomingAppointments.Any())
+                        {
+                            @foreach (var appointment in Model.UpcomingAppointments)
+                            {
+                                <div class="upcoming-item">
+                                    <div class="upcoming-date">
+                                        <span class="day">@appointment.AppointmentDateTime.Day</span>
+                                        <span class="month">@appointment.AppointmentDateTime.ToString("MMM")</span>
+                                    </div>
+                                    <div class="upcoming-details">
+                                        <h6 class="patient-name">@appointment.PatientName</h6>
+                                        <p class="appointment-info">
+                                            @appointment.TimeDisplay - @appointment.AppointmentType
+                                        </p>
+                                        <span class="badge badge-@appointment.StatusColor">@appointment.Status</span>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="no-appointments">
+                                <p class="text-muted">No upcoming appointments this week</p>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
@@ -115,72 +204,723 @@
     </div>
 </div>
 
-<!-- New Appointment Modal -->
-<div class="modal fade" id="newAppointmentModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Schedule New Appointment</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="newAppointmentForm">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="patientSelect" class="form-label">Patient</label>
-                            <select class="form-control" id="patientSelect" required>
-                                <option value="">Select Patient</option>
-                                <option value="1">John Doe</option>
-                                <option value="2">Jane Smith</option>
-                                <option value="3">Mike Johnson</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="appointmentType" class="form-label">Type</label>
-                            <select class="form-control" id="appointmentType" required>
-                                <option value="consultation">Consultation</option>
-                                <option value="follow-up">Follow-up</option>
-                                <option value="check-up">Check-up</option>
-                                <option value="emergency">Emergency</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="appointmentDate" class="form-label">Date</label>
-                            <input type="date" class="form-control" id="appointmentDate" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="appointmentTime" class="form-label">Time</label>
-                            <select class="form-control" id="appointmentTime" required>
-                                <option value="">Select Time</option>
-                                <option value="09:00">9:00 AM</option>
-                                <option value="09:30">9:30 AM</option>
-                                <option value="10:00">10:00 AM</option>
-                                <option value="10:30">10:30 AM</option>
-                                <option value="11:00">11:00 AM</option>
-                                <option value="11:30">11:30 AM</option>
-                                <option value="14:00">2:00 PM</option>
-                                <option value="14:30">2:30 PM</option>
-                                <option value="15:00">3:00 PM</option>
-                                <option value="15:30">3:30 PM</option>
-                                <option value="16:00">4:00 PM</option>
-                                <option value="16:30">4:30 PM</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="appointmentNotes" class="form-label">Notes</label>
-                        <textarea class="form-control" id="appointmentNotes" rows="3" placeholder="Additional notes or instructions"></textarea>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="scheduleAppointment()">Schedule</button>
-            </div>
-        </div>
-    </div>
-</div>
 
-<script src="~/js/doctor/calendar.js"></script>
+
+<!-- Success/Error Messages -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<style>
+    /* Force visibility for calendar controls */
+    div[style*="border: 3px solid #007bff"] {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        z-index: 999 !important;
+        position: relative !important;
+    }
+
+        div[style*="border: 3px solid #007bff"] * {
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+    button[onclick*="setCalendarView"] {
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        cursor: pointer !important;
+    }
+
+    a[href*="Calendar"] {
+        display: inline-flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    /* Dashboard Card Styles */
+    .dashboard-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+
+    .card-content {
+        padding: 0;
+    }
+
+    /* Ensure buttons are visible */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+        .btn i {
+            margin-right: 5px;
+        }
+
+    /* Fix any potential z-index issues */
+    .calendar-controls {
+        position: relative;
+        z-index: 10;
+    }
+
+    /* Calendar Layout - Fixed for controls above calendar */
+    .content {
+        display: flex !important;
+        gap: 20px !important;
+        align-items: flex-start !important;
+    }
+
+        .content > div:first-child {
+            flex: 1 !important;
+            display: flex !important;
+            flex-direction: column !important;
+        }
+
+    .calendar-sidebar-widget {
+        width: 350px !important;
+        flex-shrink: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 20px !important;
+    }
+
+    /* Calendar Container */
+    .calendar-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+
+    /* Calendar Header (Days of Week) */
+    .calendar-header {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        background: #f8f9fa;
+        border-bottom: 2px solid #e9ecef;
+    }
+
+    .calendar-day-header {
+        padding: 15px 10px;
+        text-align: center;
+        font-weight: 600;
+        color: #495057;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Calendar Body */
+    .calendar-body {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        grid-template-rows: repeat(6, 1fr);
+        background: white;
+    }
+
+    .calendar-week {
+        display: contents; /* This makes flex children behave as grid items */
+    }
+
+    .calendar-day {
+        min-height: 120px;
+        padding: 8px;
+        border-right: 1px solid #e9ecef;
+        border-bottom: 1px solid #e9ecef;
+        position: relative;
+        transition: background-color 0.2s ease;
+        cursor: pointer;
+    }
+
+        .calendar-day:hover {
+            background-color: #f8f9fa;
+        }
+
+        .calendar-day:nth-child(7n) {
+            border-right: none;
+        }
+
+        .calendar-day.today {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border: 2px solid #2196f3;
+            font-weight: 600;
+        }
+
+        .calendar-day.other-month {
+            background: #fafafa;
+            color: #bdbdbd;
+        }
+
+            .calendar-day.other-month .calendar-date {
+                color: #bdbdbd;
+            }
+
+    /* Calendar Date Number */
+    .calendar-date {
+        font-weight: 600;
+        font-size: 16px;
+        margin-bottom: 8px;
+        color: #333;
+    }
+
+    .calendar-day.today .calendar-date {
+        color: #1976d2;
+        font-size: 18px;
+    }
+
+    /* Appointments in Calendar */
+    .appointments {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        max-height: 80px;
+        overflow: hidden;
+    }
+
+    .appointment-item {
+        background: #f0f0f0;
+        border-radius: 4px;
+        padding: 3px 6px;
+        font-size: 11px;
+        line-height: 1.3;
+        cursor: pointer;
+        border-left: 3px solid #ddd;
+        transition: all 0.2s ease;
+        margin-bottom: 1px;
+    }
+
+        .appointment-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .appointment-item.appointment-primary {
+            background: #e3f2fd;
+            border-left-color: #2196f3;
+            color: #1565c0;
+        }
+
+        .appointment-item.appointment-success {
+            background: #e8f5e8;
+            border-left-color: #4caf50;
+            color: #2e7d32;
+        }
+
+        .appointment-item.appointment-warning {
+            background: #fff3e0;
+            border-left-color: #ff9800;
+            color: #f57c00;
+        }
+
+        .appointment-item.appointment-danger {
+            background: #ffebee;
+            border-left-color: #f44336;
+            color: #c62828;
+        }
+
+    .appointment-time {
+        font-weight: 600;
+        display: block;
+        font-size: 10px;
+    }
+
+    .appointment-patient {
+        color: inherit;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 10px;
+        opacity: 0.8;
+    }
+
+    .more-appointments {
+        font-size: 9px;
+        color: #666;
+        font-style: italic;
+        text-align: center;
+        padding: 2px;
+        background: #f8f9fa;
+        border-radius: 2px;
+        margin-top: 2px;
+    }
+
+    /* Schedule Sidebar Styles */
+    .calendar-sidebar-widget {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .schedule-item, .upcoming-item {
+        display: flex;
+        gap: 12px;
+        padding: 12px;
+        border-bottom: 1px solid #eee;
+        align-items: center;
+        transition: background-color 0.2s ease;
+    }
+
+        .schedule-item:hover, .upcoming-item:hover {
+            background-color: #f8f9fa;
+        }
+
+    .schedule-time {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        padding: 8px 12px;
+        border-radius: 8px;
+        font-weight: 600;
+        min-width: 70px;
+        text-align: center;
+        color: #495057;
+        font-size: 12px;
+    }
+
+    .upcoming-date {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        padding: 10px;
+        border-radius: 8px;
+        text-align: center;
+        min-width: 60px;
+    }
+
+        .upcoming-date .day {
+            display: block;
+            font-size: 18px;
+            font-weight: 600;
+            line-height: 1;
+            color: #333;
+        }
+
+        .upcoming-date .month {
+            display: block;
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+
+    .schedule-details, .upcoming-details {
+        flex: 1;
+    }
+
+    .patient-name {
+        margin: 0 0 4px 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .appointment-type, .appointment-info {
+        margin: 0 0 4px 0;
+        font-size: 12px;
+        color: #666;
+    }
+
+    .badge {
+        font-size: 10px;
+        padding: 4px 8px;
+        color: white;
+        border-radius: 12px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .badge-primary {
+        background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+    }
+
+    .badge-success {
+        background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
+    }
+
+    .badge-warning {
+        background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+    }
+
+    .badge-danger {
+        background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+    }
+
+    .badge-secondary {
+        background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    }
+
+    .no-appointments {
+        padding: 30px 20px;
+        text-align: center;
+    }
+
+        .no-appointments .text-muted {
+            color: #6c757d;
+            font-style: italic;
+        }
+
+    /* Calendar Controls */
+    .calendar-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 15px;
+        padding: 15px 20px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .calendar-navigation {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+        .calendar-navigation h4 {
+            margin: 0;
+            font-weight: 600;
+            color: #333;
+            min-width: 150px;
+            text-align: center;
+        }
+
+    .calendar-view-options {
+        display: flex;
+        align-items: center;
+    }
+
+        .calendar-view-options .btn-group {
+            display: flex;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #dee2e6;
+        }
+
+        .calendar-view-options .btn {
+            border-radius: 0;
+            border: 1px solid #dee2e6;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+            .calendar-view-options .btn:first-child {
+                border-top-left-radius: 8px;
+                border-bottom-left-radius: 8px;
+            }
+
+            .calendar-view-options .btn:last-child {
+                border-top-right-radius: 8px;
+                border-bottom-right-radius: 8px;
+            }
+
+            .calendar-view-options .btn.active {
+                background-color: #6c5ce7;
+                color: white;
+                border-color: #6c5ce7;
+            }
+
+            .calendar-view-options .btn:hover:not(.active) {
+                background-color: #f8f9fa;
+                transform: translateY(-1px);
+            }
+
+    /* Today button styling */
+    .btn.btn-outline-info {
+        border: 2px solid #17a2b8;
+        color: #17a2b8;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+        .btn.btn-outline-info:hover {
+            background-color: #17a2b8;
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(23, 162, 184, 0.3);
+        }
+
+    /* Navigation buttons */
+    .btn.btn-outline-primary {
+        border: 2px solid #6c5ce7;
+        color: #6c5ce7;
+        padding: 8px 12px;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+
+        .btn.btn-outline-primary:hover {
+            background-color: #6c5ce7;
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(108, 92, 231, 0.3);
+        }
+
+    /* Responsive Design */
+    @@media (max-width: 1200px) {
+        .content {
+            flex-direction: column;
+        }
+
+        .calendar-sidebar-widget {
+            width: 100%;
+            order: -1;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .calendar-day {
+            min-height: 80px;
+            padding: 4px;
+        }
+
+        .calendar-date {
+            font-size: 14px;
+        }
+
+        .appointment-item {
+            font-size: 9px;
+            padding: 2px 4px;
+        }
+
+        .calendar-controls {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+        }
+
+        .calendar-navigation {
+            justify-content: center;
+        }
+
+        .calendar-view-options {
+            justify-content: center;
+        }
+
+        .btn.btn-outline-info {
+            justify-content: center;
+        }
+    }
+
+    /* Calendar Controls - High Specificity */
+    .dashboard-card .card-content .calendar-controls {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        margin-bottom: 20px !important;
+        flex-wrap: wrap !important;
+        gap: 15px !important;
+        padding: 15px 20px !important;
+        background: white !important;
+        border-radius: 12px !important;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
+        position: relative !important;
+        z-index: 10 !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+        .dashboard-card .card-content .calendar-controls .calendar-navigation {
+            display: flex !important;
+            align-items: center !important;
+            gap: 15px !important;
+            visibility: visible !important;
+        }
+
+        .dashboard-card .card-content .calendar-controls .calendar-view-options {
+            display: flex !important;
+            align-items: center !important;
+            visibility: visible !important;
+        }
+
+            .dashboard-card .card-content .calendar-controls .calendar-view-options .btn-group {
+                display: flex !important;
+                border-radius: 8px !important;
+                overflow: hidden !important;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+                visibility: visible !important;
+            }
+
+            .dashboard-card .card-content .calendar-controls .calendar-view-options .btn {
+                display: inline-flex !important;
+                align-items: center !important;
+                border-radius: 0 !important;
+                border: 1px solid #dee2e6 !important;
+                padding: 8px 16px !important;
+                font-size: 14px !important;
+                font-weight: 500 !important;
+                transition: all 0.2s ease !important;
+                background-color: white !important;
+                color: #495057 !important;
+                text-decoration: none !important;
+                cursor: pointer !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+            }
+
+                .dashboard-card .card-content .calendar-controls .calendar-view-options .btn:first-child {
+                    border-top-left-radius: 8px !important;
+                    border-bottom-left-radius: 8px !important;
+                }
+
+                .dashboard-card .card-content .calendar-controls .calendar-view-options .btn:last-child {
+                    border-top-right-radius: 8px !important;
+                    border-bottom-right-radius: 8px !important;
+                }
+
+                .dashboard-card .card-content .calendar-controls .calendar-view-options .btn.active {
+                    background-color: #6c5ce7 !important;
+                    color: white !important;
+                    border-color: #6c5ce7 !important;
+                }
+
+                .dashboard-card .card-content .calendar-controls .calendar-view-options .btn:hover:not(.active) {
+                    background-color: #f8f9fa !important;
+                    transform: translateY(-1px) !important;
+                }
+
+        /* Today button - High Specificity */
+        .dashboard-card .card-content .calendar-controls .btn.btn-outline-info {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            border: 2px solid #17a2b8 !important;
+            color: #17a2b8 !important;
+            padding: 8px 16px !important;
+            border-radius: 8px !important;
+            font-weight: 500 !important;
+            transition: all 0.2s ease !important;
+            background-color: white !important;
+            text-decoration: none !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+            .dashboard-card .card-content .calendar-controls .btn.btn-outline-info:hover {
+                background-color: #17a2b8 !important;
+                color: white !important;
+                transform: translateY(-1px) !important;
+                box-shadow: 0 4px 8px rgba(23, 162, 184, 0.3) !important;
+            }
+
+        /* Navigation buttons - High Specificity */
+        .dashboard-card .card-content .calendar-controls .btn.btn-outline-primary {
+            display: inline-flex !important;
+            align-items: center !important;
+            border: 2px solid #6c5ce7 !important;
+            color: #6c5ce7 !important;
+            padding: 8px 12px !important;
+            border-radius: 8px !important;
+            transition: all 0.2s ease !important;
+            background-color: white !important;
+            text-decoration: none !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+            .dashboard-card .card-content .calendar-controls .btn.btn-outline-primary:hover {
+                background-color: #6c5ce7 !important;
+                color: white !important;
+                transform: translateY(-1px) !important;
+                box-shadow: 0 4px 8px rgba(108, 92, 231, 0.3) !important;
+            }
+</style>
+
+<script>
+    // Calendar view management - Updated for new structure
+    function setCalendarView(viewType) {
+        console.log('setCalendarView called with:', viewType);
+
+        // Find all view buttons by their onclick attribute
+        const buttons = document.querySelectorAll('button[onclick*="setCalendarView"]');
+        console.log('Found view buttons:', buttons.length);
+
+        // Reset all buttons to inactive state
+        buttons.forEach(btn => {
+            btn.style.background = 'white';
+            btn.style.color = '#6c757d';
+        });
+
+        // Set active button
+        const clickedButton = event.target;
+        clickedButton.style.background = '#6c757d';
+        clickedButton.style.color = 'white';
+
+        console.log('Active button set for:', viewType);
+
+        // Handle different view types
+        switch(viewType) {
+            case 'month':
+                console.log('Month view selected');
+                break;
+            case 'week':
+                console.log('Week view selected');
+                alert('Week view feature coming soon!');
+                break;
+            case 'day':
+                console.log('Day view selected');
+                alert('Day view feature coming soon!');
+                break;
+            default:
+                console.log('Unknown view type:', viewType);
+        }
+    }
+
+    // Set Month as default active view on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM loaded, setting default view');
+
+        setTimeout(function() {
+            const buttons = document.querySelectorAll('button[onclick*="setCalendarView"]');
+            console.log('Page load - Found view buttons:', buttons.length);
+
+            // Reset all buttons
+            buttons.forEach(btn => {
+                btn.style.background = 'white';
+                btn.style.color = '#6c757d';
+            });
+
+            // Set month as active
+            const monthBtn = document.querySelector('button[onclick*="month"]');
+            if (monthBtn) {
+                monthBtn.style.background = '#6c757d';
+                monthBtn.style.color = 'white';
+                console.log('Month button set as active');
+            } else {
+                console.log('Month button not found');
+            }
+        }, 100);
+    });
+
+    // Debug - log all button clicks
+    document.addEventListener('click', function(e) {
+        if (e.target.matches('button[onclick*="setCalendarView"]')) {
+            console.log('View button clicked:', e.target.textContent.trim());
+        }
+    });
+</script>

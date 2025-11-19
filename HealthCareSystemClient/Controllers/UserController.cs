@@ -1,7 +1,8 @@
-﻿using Azure;
+using Azure;
 using Azure.Core;
 using BusinessObjects.DataTransferObjects.AppointmentDTOs;
 using BusinessObjects.DataTransferObjects.AuthDTOs;
+using BusinessObjects.DataTransferObjects.PatientDTOs;
 using BusinessObjects.Domain;
 using HealthCareSystemClient.Models;
 using Microsoft.AspNetCore.Http;
@@ -10,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http.Json;
 using System.Text.Json;
+
 
 namespace HealthCareSystemClient.Controllers
 {
@@ -520,11 +522,109 @@ namespace HealthCareSystemClient.Controllers
             }
         }
 
-        public IActionResult Calendar()
+        public async Task<IActionResult> Calendar()
         {
             ViewData["ActiveMenu"] = "Calendar";
-            return View();
+            var currentUserId = HttpContext.Session.GetInt32("UserId");
+            var client = _httpClientFactory.CreateClient("healthcaresystemapi");
+            var patientcurent = await client.GetAsync($"api/Patient/{currentUserId}");
+            if (!patientcurent.IsSuccessStatusCode) return View(new PatientProfileDTO());
+            var currentUser = await patientcurent.Content.ReadFromJsonAsync<PatientProfileDTO>();
+            ViewBag.CurrentUser = currentUser;
+
+            if (currentUserId == null)
+            {
+                return RedirectToAction("Index", "Login");
+            }
+
+            //var allAppointments = await _appointmentService.GetAllAppointmentsAsync();
+
+            var response = await client.GetAsync($"api/Appointment/patient/{currentUserId}");
+            if (!response.IsSuccessStatusCode) return View(new List<AppointmentResponse>());
+            var userAppointments = await response.Content.ReadFromJsonAsync<List<AppointmentResponse>>();
+
+            var model = new BookAppointmentViewModel();
+            var responsespecialy = await client.GetAsync($"api/Appointment/specialty");
+            if (!responsespecialy.IsSuccessStatusCode) return View(new List<Specialty>());
+            var sespecialy = await responsespecialy.Content.ReadFromJsonAsync<List<Specialty>>();
+            model.Specialties = sespecialy
+                .Select(s => new SpecialtyViewModel
+                {
+                    SpecialtyId = s.SpecialtyId,
+                    Name = s.Name,
+                    Description = s.Description
+                }).ToList();
+
+            // Prepare calendar data
+            ViewBag.TodayAppointments = GetTodayAppointments(userAppointments);
+            ViewBag.WeekAppointments = GetWeekAppointments(userAppointments);
+            ViewBag.MonthAppointments = GetMonthAppointments(userAppointments);
+            ViewBag.CurrentDate = DateTime.Now;
+
+            return View(model);
         }
+
+        private List<AppointmentViewModel> GetTodayAppointments(List<AppointmentResponse> appointments)
+        {
+            return appointments
+                .Where(a => a.AppointmentDateTime.Date == DateTime.Today && (a.Status == "Pending" || a.Status == "Confirmed"))
+                .OrderBy(a => a.AppointmentDateTime)
+                .Select(a => new AppointmentViewModel
+                {
+                    AppointmentId = a.AppointmentId,
+                    AppointmentDateTime = a.AppointmentDateTime,
+                    Status = a.Status ?? "Unknown",
+                    Notes = a.Notes ?? "",
+                    DoctorName = a.DoctorName ?? "Unknown Doctor",
+                    PatientName = a.PatientName ?? "Unknown Patient",
+                    CreatedAt = a.CreatedAt ?? DateTime.Now
+                }).ToList();
+        }
+
+        private List<AppointmentViewModel> GetWeekAppointments(List<AppointmentResponse> appointments)
+        {
+            var startOfWeek = DateTime.Now.Date.AddDays(-(int)DateTime.Now.DayOfWeek);
+            var endOfWeek = startOfWeek.AddDays(7);
+
+            return appointments
+                .Where(a => a.AppointmentDateTime >= startOfWeek &&
+                           a.AppointmentDateTime < endOfWeek &&
+                           (a.Status == "Pending" || a.Status == "Confirmed"))
+                .OrderBy(a => a.AppointmentDateTime)
+                .Select(a => new AppointmentViewModel
+                {
+                    AppointmentId = a.AppointmentId,
+                    AppointmentDateTime = a.AppointmentDateTime,
+                    Status = a.Status ?? "Unknown",
+                    Notes = a.Notes ?? "",
+                    DoctorName = a.DoctorName ?? "Unknown Doctor",
+                    PatientName = a.PatientName ?? "Unknown Patient",
+                    CreatedAt = a.CreatedAt ?? DateTime.Now
+                }).ToList();
+        }
+
+        private List<AppointmentViewModel> GetMonthAppointments(List<AppointmentResponse> appointments)
+        {
+            var startOfMonth = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+            var endOfMonth = startOfMonth.AddMonths(1);
+
+            return appointments
+                .Where(a => a.AppointmentDateTime >= startOfMonth &&
+                           a.AppointmentDateTime < endOfMonth &&
+                           (a.Status == "Pending" || a.Status == "Confirmed"))
+                .OrderBy(a => a.AppointmentDateTime)
+                .Select(a => new AppointmentViewModel
+                {
+                    AppointmentId = a.AppointmentId,
+                    AppointmentDateTime = a.AppointmentDateTime,
+                    Status = a.Status ?? "Unknown",
+                    Notes = a.Notes ?? "",
+                    DoctorName = a.DoctorName ?? "Unknown Doctor",
+                    PatientName = a.PatientName ?? "Unknown Patient",
+                    CreatedAt = a.CreatedAt ?? DateTime.Now
+                }).ToList();
+        }
+
         public IActionResult Doctors()
         {
             ViewData["ActiveMenu"] = "Doctors";
