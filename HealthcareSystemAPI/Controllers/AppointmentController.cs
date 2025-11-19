@@ -1,4 +1,5 @@
 ﻿using BusinessObjects.DataTransferObjects.AppointmentDTOs;
+using BusinessObjects.DataTransferObjects.PaymentDTOs;
 using Microsoft.AspNetCore.Mvc;
 using Services.Interface;
 using System.Linq;
@@ -12,10 +13,12 @@ namespace HealthcareSystemAPI.Controllers
     public class AppointmentController : Controller
     {
         private readonly IAppointmentService _appointmentService;
+        private readonly IPaymentService _paymentService;
 
-        public AppointmentController(IAppointmentService appointmentService)
+        public AppointmentController(IAppointmentService appointmentService, IPaymentService paymentService)
         {
             _appointmentService = appointmentService;
+            _paymentService = paymentService;
         }
 
         [HttpGet]
@@ -183,6 +186,31 @@ namespace HealthcareSystemAPI.Controllers
             var result = await _appointmentService.UpdateRejectAsync(dto);
             if (result == null) return NotFound(new { message = "Appointment not found" });
             return Ok(result);
+        }
+
+        [HttpPost("{appointmentId}/payment")]
+        public async Task<IActionResult> CreatePaymentForAppointment(int appointmentId, [FromBody] PaymentRequest request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            // Verify appointment exists
+            var appointment = await _appointmentService.GetByIdAsync(appointmentId);
+            if (appointment == null)
+                return NotFound(new { message = "Appointment not found" });
+
+            // Set appointment ID
+            request.AppointmentId = appointmentId;
+
+            try
+            {
+                var payment = await _paymentService.CreatePaymentAsync(request);
+                return Ok(payment);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error creating payment", error = ex.Message });
+            }
         }
 
         

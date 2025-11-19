@@ -58,8 +58,7 @@ public partial class HealthCareSystemContext : DbContext
         IConfiguration configuration = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("appsettings.json", true, true).Build();
-        return configuration["ConnectionStrings:DefaultConnectionString"]
-                ?? "Data Source=localhost;Database=HealthCareSystem;User Id=sa;Password=1234567890;TrustServerCertificate=true;Trusted_Connection=SSPI;Encrypt=false;";
+        return configuration["ConnectionStrings:DefaultConnectionString"];
     }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -306,6 +305,10 @@ public partial class HealthCareSystemContext : DbContext
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
             entity.Property(e => e.PaymentMethod).HasMaxLength(50);
+            entity.Property(e => e.Status).HasMaxLength(20);
+            entity.Property(e => e.TransactionId).HasMaxLength(100);
+            entity.Property(e => e.PaymentLinkId).HasMaxLength(100);
+            entity.Property(e => e.PaymentLink).HasMaxLength(500);
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");

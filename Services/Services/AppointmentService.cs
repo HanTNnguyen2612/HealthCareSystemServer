@@ -1,4 +1,5 @@
 ﻿using BusinessObjects.DataTransferObjects.AppointmentDTOs;
+using BusinessObjects.DataTransferObjects.PaymentDTOs;
 using BusinessObjects.Domain;
 using Microsoft.EntityFrameworkCore;
 using Services.Interface;
@@ -16,14 +17,16 @@ namespace Services.Services
         private readonly DataAccessObjects.DAO.AppointmentDAO _appointmentDAO;
         private readonly IDoctorService _doctorService;
         private readonly IPatientService _patientService;
+        private readonly IPaymentService? _paymentService;
 
 
 
-        public AppointmentService(DataAccessObjects.DAO.AppointmentDAO appointmentDAO, IDoctorService doctorService, IPatientService patientService)
+        public AppointmentService(DataAccessObjects.DAO.AppointmentDAO appointmentDAO, IDoctorService doctorService, IPatientService patientService, IPaymentService? paymentService = null)
         {
             _appointmentDAO = appointmentDAO;
             _doctorService = doctorService;
             _patientService = patientService;
+            _paymentService = paymentService;
         }
 
 

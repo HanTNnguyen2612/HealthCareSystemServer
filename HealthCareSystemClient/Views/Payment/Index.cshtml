@@ -1,0 +1,80 @@
+@{
+    Layout = "_LayoutUser";
+    ViewData["Title"] = "Payment";
+}
+
+<div class="main-content">
+    <header class="header">
+        <h1 class="header-title">Payment</h1>
+    </header>
+
+    <div class="content">
+        <div class="dashboard-card">
+            <div class="card-content">
+                @if (TempData["PaymentLink"] != null)
+                {
+                    <div class="alert alert-info">
+                        <h5>Payment Required</h5>
+                        <p>Please complete the payment to confirm your appointment.</p>
+                        <p><strong>Amount:</strong> 10,000 VND</p>
+                        <a href="@TempData["PaymentLink"]" class="btn btn-primary btn-lg mt-3" target="_blank">
+                            <i class="fas fa-credit-card"></i> Pay Now
+                        </a>
+                    </div>
+                }
+                else if (ViewBag.Payments != null && ((List<BusinessObjects.DataTransferObjects.PaymentDTOs.PaymentResponse>)ViewBag.Payments).Any())
+                {
+                    <h5>Payment History</h5>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var payment in (List<BusinessObjects.DataTransferObjects.PaymentDTOs.PaymentResponse>)ViewBag.Payments)
+                                {
+                                    <tr>
+                                        <td>@payment.Amount.ToString("N0") VND</td>
+                                        <td>
+                                            <span class="badge @(payment.Status == "PAID" ? "bg-success" : payment.Status == "PENDING" ? "bg-warning" : "bg-danger")">
+                                                @payment.Status
+                                            </span>
+                                        </td>
+                                        <td>@(payment.CreatedAt?.ToString("dd/MM/yyyy HH:mm") ?? "N/A")</td>
+                                        <td>
+                                            @if (payment.Status == "PENDING" && !string.IsNullOrEmpty(payment.PaymentLink))
+                                            {
+                                                <a href="@payment.PaymentLink" class="btn btn-sm btn-primary" target="_blank">Pay Now</a>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-warning">
+                        <p>No payment information available.</p>
+                        @if (ViewBag.AppointmentId != null)
+                        {
+                            <form method="post" action="@Url.Action("Create", "Payment")">
+                                <input type="hidden" name="appointmentId" value="@ViewBag.AppointmentId" />
+                                <input type="hidden" name="amount" value="10000" />
+                                <input type="hidden" name="description" value="Appointment Payment" />
+                                <button type="submit" class="btn btn-primary">Create Payment</button>
+                            </form>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
