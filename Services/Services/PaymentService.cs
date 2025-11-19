@@ -1,4 +1,5 @@
 using BusinessObjects.DataTransferObjects.PaymentDTOs;
+using BusinessObjects.DataTransferObjects.PaymentDTOs.Shared;
 using BusinessObjects.Domain;
 using DataAccessObjects.DAO;
 using Microsoft.Extensions.Configuration;
@@ -18,6 +19,7 @@ namespace Services.Services
     public class PaymentService : IPaymentService
     {
         private readonly PaymentDAO _paymentDAO;
+        private readonly AppointmentDAO _appointmentDAO;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IConfiguration _configuration;
         private readonly string _payOSClientId;
@@ -28,10 +30,12 @@ namespace Services.Services
 
         public PaymentService(
             PaymentDAO paymentDAO,
+            AppointmentDAO appointmentDAO,
             IHttpClientFactory httpClientFactory,
             IConfiguration configuration)
         {
             _paymentDAO = paymentDAO;
+            _appointmentDAO = appointmentDAO;
             _httpClientFactory = httpClientFactory;
             _configuration = configuration;
             _payOSClientId = _configuration["PayOS:ClientId"] ?? "";
@@ -66,6 +70,10 @@ namespace Services.Services
 
             var paymentLink = paymentLinkResponse.Data ?? throw new Exception("Failed to get payment link data");
 
+            var draftJson = request.BookingDraft == null
+                ? null
+                : JsonSerializer.Serialize(request.BookingDraft);
+
             var payment = new Payment
             {
                 PatientUserId = request.PatientUserId,
@@ -75,7 +83,8 @@ namespace Services.Services
                 Status = "PENDING",
                 PaymentLinkId = paymentLink.PaymentLinkId,
                 PaymentLink = paymentLink.CheckoutUrl,
-                TransactionId = orderCode.ToString()
+                TransactionId = orderCode.ToString(),
+                BookingDraftJson = draftJson
             };
 
             var createdPayment = await _paymentDAO.CreateAsync(payment);
@@ -160,6 +169,7 @@ namespace Services.Services
                 payment.Status = "PAID";
                 payment.TransactionId = callback.Data.Reference;
                 payment.UpdatedAt = DateTime.UtcNow;
+                await CreateAppointmentFromDraftAsync(payment);
             }
             else
             {
@@ -193,6 +203,7 @@ namespace Services.Services
                 payment.Status = "PAID";
                 payment.TransactionId = paymentInfo.Data.TransactionId;
                 payment.UpdatedAt = DateTime.UtcNow;
+                await CreateAppointmentFromDraftAsync(payment);
                 await _paymentDAO.UpdateAsync(payment);
             }
 
@@ -410,6 +421,46 @@ namespace Services.Services
                 CreatedAt = payment.CreatedAt,
                 UpdatedAt = payment.UpdatedAt
             };
+        }
+
+        private async Task CreateAppointmentFromDraftAsync(Payment payment)
+        {
+            if (payment.AppointmentId.HasValue || string.IsNullOrWhiteSpace(payment.BookingDraftJson))
+            {
+                return;
+            }
+
+            BookingDraftDto? draft;
+            try
+            {
+                draft = JsonSerializer.Deserialize<BookingDraftDto>(payment.BookingDraftJson);
+            }
+            catch
+            {
+                return;
+            }
+
+            if (draft == null)
+            {
+                return;
+            }
+
+            var appointmentDateTime = draft.AppointmentDate.Date + draft.AppointmentTime;
+
+            var appointment = new Appointment
+            {
+                PatientUserId = payment.PatientUserId,
+                DoctorUserId = draft.DoctorUserId,
+                AppointmentDateTime = appointmentDateTime,
+                Notes = draft.Notes,
+                Status = "Pending",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            var createdAppointment = await _appointmentDAO.CreateAsync(appointment);
+            payment.AppointmentId = createdAppointment.AppointmentId;
+            payment.BookingDraftJson = null;
         }
 
         // PayOS API Response Models

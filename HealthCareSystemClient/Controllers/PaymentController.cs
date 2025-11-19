@@ -1,5 +1,5 @@
-using BusinessObjects.DataTransferObjects.AppointmentDTOs;
 using BusinessObjects.DataTransferObjects.PaymentDTOs;
+using BusinessObjects.DataTransferObjects.PaymentDTOs.Shared;
 using HealthCareSystemClient.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.Http.Json;
@@ -166,13 +166,38 @@ namespace HealthCareSystemClient.Controllers
                 return RedirectToAction("Appointments", "User");
             }
 
+            BookingDraftRequest? draft;
+            try
+            {
+                draft = JsonSerializer.Deserialize<BookingDraftRequest>(draftJson);
+            }
+            catch
+            {
+                draft = null;
+            }
+
+            if (draft == null)
+            {
+                TempData["Error"] = "Booking information is invalid. Please try again.";
+                return RedirectToAction("Appointments", "User");
+            }
+
             var client = _httpClientFactory.CreateClient("healthcaresystemapi");
             var paymentRequest = new PaymentRequest
             {
                 PatientUserId = currentUserId.Value,
                 AppointmentId = 0,
                 Amount = BookingFee,
-                Description = "Appointment booking prepayment"
+                Description = "Appointment booking prepayment",
+                BookingDraft = new BookingDraftDto
+                {
+                    SpecialtyId = draft.SpecialtyId,
+                    DoctorUserId = draft.DoctorUserId,
+                    AppointmentDate = draft.AppointmentDate,
+                    AppointmentTime = draft.AppointmentTime,
+                    Notes = draft.Notes,
+                    AppointmentType = draft.AppointmentType
+                }
             };
 
             var response = await client.PostAsJsonAsync("api/Payment", paymentRequest);
@@ -223,16 +248,8 @@ namespace HealthCareSystemClient.Controllers
                 return RedirectToAction("Appointments", "User");
             }
 
-            var finalizeResult = await FinalizeAppointmentFromDraftAsync();
-            if (!finalizeResult.Success)
-            {
-                TempData["Error"] = finalizeResult.ErrorMessage ?? "Payment succeeded but booking failed. Please contact support.";
-            }
-            else
-            {
-                TempData["Success"] = "Payment successful! Your appointment has been booked.";
-            }
-
+            HttpContext.Session.Remove("BookingDraft");
+            TempData["Success"] = "Payment successful! Your appointment has been booked.";
             return RedirectToAction("Appointments", "User");
         }
 
@@ -243,55 +260,6 @@ namespace HealthCareSystemClient.Controllers
             return RedirectToAction("Appointments", "User");
         }
 
-        private async Task<(bool Success, string? ErrorMessage)> FinalizeAppointmentFromDraftAsync()
-        {
-            var draftJson = HttpContext.Session.GetString("BookingDraft");
-            if (string.IsNullOrEmpty(draftJson))
-            {
-                return (false, "Missing booking information. Please start again.");
-            }
-
-            BookingDraftRequest? draft;
-            try
-            {
-                draft = JsonSerializer.Deserialize<BookingDraftRequest>(draftJson);
-            }
-            catch
-            {
-                return (false, "Invalid booking information. Please try again.");
-            }
-
-            if (draft == null)
-            {
-                return (false, "Invalid booking information. Please try again.");
-            }
-
-            var patientUserId = HttpContext.Session.GetInt32("UserId");
-            if (patientUserId == null)
-            {
-                return (false, "Session expired. Please sign in again.");
-            }
-
-            var appointmentRequest = new AppointmentAddRequest
-            {
-                PatientUserId = patientUserId.Value,
-                DoctorUserId = draft.DoctorUserId,
-                AppointmentDateTime = draft.AppointmentDate.Add(draft.AppointmentTime),
-                Notes = draft.Notes
-            };
-
-            var client = _httpClientFactory.CreateClient("healthcaresystemapi");
-            var response = await client.PostAsJsonAsync("api/Appointment", appointmentRequest);
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorBody = await response.Content.ReadAsStringAsync();
-                _logger.LogError("Failed to finalize appointment after payment. Status {Status} Body {Body}", response.StatusCode, errorBody);
-                return (false, "Payment was successful but booking failed. Please contact support.");
-            }
-
-            HttpContext.Session.Remove("BookingDraft");
-            return (true, null);
-        }
     }
 }
 
