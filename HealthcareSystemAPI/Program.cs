@@ -169,9 +169,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
-// CORS phải được gọi trước UseAuthentication và UseAuthorization
-// Sử dụng policy "AllowLocalhost" chung nhất để bao gồm tất cả các cổng local
 app.UseCors("AllowLocalhost");
 
 app.UseHttpsRedirection();

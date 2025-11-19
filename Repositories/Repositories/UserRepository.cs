@@ -12,6 +12,10 @@ namespace Repositories.Repositories
 {
     public class UserRepository : IUserRepository
     {
+        public async Task<List<UserResponseDTO>> GetAllUsers()
+        {
+            return await UserDAO.GetAllUsers();
+        }
         public async Task<bool> ChangePasswordAsync(string email, ChangePasswordRequest request)
         {
             var user = await UserDAO.GetUserByEmail(email);
@@ -38,6 +42,8 @@ namespace Repositories.Repositories
         {
             return await UserDAO.GetUserByEmail(email);
         }
+        
+        public async Task<User?> GetUserById(int id) => await UserDAO.GetUserById(id);
 
         //Hàm update này có thể gọi riêng để update từng cái được, không cần gọi hết
         //Sau này các function như thay avatar, ban, khoá acc chỉ cần gọi updateUser là ok
@@ -56,9 +62,9 @@ namespace Repositories.Repositories
             if (request.IsActive.HasValue) user.IsActive = request.IsActive.Value;
             return user;
         }
-        public async Task<bool> BanOrUnBanUserAsync(string email)
+        public async Task<bool> BanOrUnBanUserAsync(int id)
         {
-            var user = await UserDAO.GetUserByEmail(email);
+            var user = await UserDAO.GetUserById(id);
             if (user == null)
             {
                 return false;

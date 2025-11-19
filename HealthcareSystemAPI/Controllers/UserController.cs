@@ -6,7 +6,6 @@ using System.Security.Claims;
 
 namespace HealthcareSystemAPI.Controllers
 {
-    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class UserController : ControllerBase
@@ -16,6 +15,13 @@ namespace HealthcareSystemAPI.Controllers
         public UserController(IUserService userService)
         {
             _userService = userService;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var userList = await _userService.GetAllUsers();
+            return Ok(userList);
         }
 
         [HttpPost("change-password")]
@@ -52,15 +58,11 @@ namespace HealthcareSystemAPI.Controllers
             return Ok("Update successfully");
         }
 
-        [HttpPost("ban-unban-user")]
-        public async Task<IActionResult> BanOrUnbanUser()
+        [HttpPost("ban-unban-user/{userId}")]
+        public async Task<IActionResult> BanOrUnbanUser(int userId)
         {
             var email = User.FindFirst(ClaimTypes.Email)?.Value;
-            if (email == null)
-            {
-                return Unauthorized("Invalid token: missing email.");
-            }
-            var result = await _userService.BanOrUnBanUserAsync(email);
+            var result = await _userService.BanOrUnBanUserAsync(userId);
             if (!result)
             {
                 return BadRequest("Error when ban/unban user");
