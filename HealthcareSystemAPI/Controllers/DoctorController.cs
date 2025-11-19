@@ -5,6 +5,7 @@ using DataAccessObjects.DAO;
 using Microsoft.AspNetCore.Mvc;
 using Services.Interface;
 using Services.Service;
+using System.Security.Claims;
 
 namespace HealthcareSystemAPI.Controllers
 {
@@ -15,7 +16,7 @@ namespace HealthcareSystemAPI.Controllers
         private readonly IDoctorService _doctorService;
         private readonly ISpecialtyService _specialtyService;
 
-        public DoctorController(IDoctorService doctorService, ISpecialtyService specialtyService)
+        public DoctorController(IDoctorService doctorService, ISpecialtyService specialtyService )
         {
             _doctorService = doctorService;
             _specialtyService = specialtyService;
@@ -60,28 +61,56 @@ namespace HealthcareSystemAPI.Controllers
                 return StatusCode(500, "Internal server error while fetching specialties.");
             }
         }
-        // GET: api/doctor/5
+        // GET: api/doctor/{userId}
         [HttpGet("{userId}")]
-        public async Task<IActionResult> GetDoctorProfile(int userId)
+        public async Task<IActionResult> GetProfile(int userId)
         {
+            try
+            {
+                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (currentUserId != null && int.Parse(currentUserId) != userId)
+        {
+                    // return Forbid();
+                }
+
             var profile = await _doctorService.GetDoctorProfileAsync(userId);
-            if (profile == null)
-                return NotFound("Doctor not found.");
+                if (profile == null) return NotFound("Doctor profile not found.");
+
             return Ok(profile);
         }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex + "Error getting doctor profile {UserId}" + userId);
+                return StatusCode(500, "Internal Server Error");
+            }
+        }
 
-        // PUT: api/doctor
-        [HttpPut]
-        public async Task<IActionResult> UpdateDoctorProfile([FromBody] DoctorProfileDTO doctorDto)
+        // PUT: api/doctor/profile
+        [HttpPut("profile")]
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateDoctorProfileDTO dto)
         {
-            if (doctorDto == null)
-                return BadRequest("Invalid data.");
+            if (dto == null) return BadRequest("Invalid data.");
 
-            var success = await _doctorService.UpdateDoctorProfileAsync(doctorDto);
-            if (!success)
-                return NotFound("Doctor not found.");
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(currentUserId) || int.Parse(currentUserId) != dto.UserId)
+            {
+                return Unauthorized("You can only update your own profile.");
+            }
 
-            return Ok("Doctor profile updated successfully.");
+            try
+            {
+                // Lưu ý: Dù UI không hiện Address/Gender/DOB, nhưng Service có thể vẫn cần data.
+                // Frontend sẽ gửi kèm data cũ của các trường này để không bị mất (logic trong JS).
+                var success = await _doctorService.UpdateDoctorProfileAsync(dto);
+                if (!success) return NotFound("Doctor record not found.");
+
+                return Ok(new { message = "Doctor profile updated successfully" });
+            }
+            catch (Exception ex)
+        {
+                Console.WriteLine(ex + "Error updating doctor profile {UserId}" + dto.UserId);
+                return StatusCode(500, "Internal Server Error");
+            }
         }
 
         [HttpGet("get-patient/{doctorUserId}")]

@@ -4,26 +4,25 @@
 @{
     Layout = "_LayoutUser";
     ViewData["Title"] = "Health Dashboard";
+    var currentName = Context.Session.GetString("FullName") ?? Context.Session.GetString("Email") ?? "Guest";
+    var currentRole = Context.Session.GetString("Role") ?? "Patient";
+    var avatar = Context.Session.GetString("AvatarUrl") ?? "/placeholder.svg?height=32&width=32";
 }
 <!-- Main Content -->
 <div class="main-content">
     <!-- Header -->
     <header class="header">
         <h1 class="header-title">Health Dashboard</h1>
-        <div class="search-container">
-            <i class="fas fa-search search-icon"></i>
-            <input type="text" class="search-input" placeholder="Search appointments, doctors..." id="searchInput">
-        </div>
         <div class="header-actions">
             <button class="notification-btn">
                 <i class="fas fa-bell"></i>
                 <span class="notification-badge">3</span>
             </button>
-            <div class="user-profile" onclick="window.location.href='profile.html'">
-                <img src="/placeholder.svg?height=32&width=32" alt="User" class="user-avatar">
+            <div class="user-profile" onclick="window.location.href='User/Profile'">
+                <img src="@avatar" alt="User" class="user-avatar">
                 <div class="user-info">
-                    <h6 id="userName">John Doe</h6>
-                    <p>Patient</p>
+                    <h6 id="userName">@currentName</h6>
+                    <p>@currentRole</p>
                 </div>
             </div>
         </div>

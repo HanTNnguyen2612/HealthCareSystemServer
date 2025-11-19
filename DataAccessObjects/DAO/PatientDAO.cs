@@ -27,6 +27,9 @@ namespace DataAccessObjects.DAO
         public async Task UpdatePatientAsync(Patient patient)
         {
             _context.Patients.Update(patient);
+
+            _context.Entry(patient.User).State = EntityState.Modified;
+
             await _context.SaveChangesAsync();
         }
 

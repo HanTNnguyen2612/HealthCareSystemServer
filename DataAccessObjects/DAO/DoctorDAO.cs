@@ -11,22 +11,28 @@ namespace DataAccessObjects.DAO
 {
     public class DoctorDAO
     {
+        private readonly HealthCareSystemContext _context;
 
-        public static async Task<Doctor?> GetDoctorByUserIdAsync(int userId)
+        public DoctorDAO(HealthCareSystemContext context)
         {
-            var _context = new HealthCareSystemContext();
+            _context = context;
+        }
+        public async Task<Doctor?> GetDoctorByUserIdAsync(int userId)
+        {
+            // Quan trọng: Phải .Include(u => u.User) để lấy tên, email...
             return await _context.Doctors
                 .Include(d => d.User)
-                .Include(d => d.Specialty)
                 .FirstOrDefaultAsync(d => d.UserId == userId);
         }
 
-        public static async Task UpdateDoctorAsync(Doctor doctor)
+        public async Task UpdateDoctorAsync(Doctor doctor)
         {
-            var _context = new HealthCareSystemContext();
             _context.Doctors.Update(doctor);
+            // Báo hiệu rằng User cũng bị thay đổi (vì sửa tên, sđt...)
+            _context.Entry(doctor.User).State = EntityState.Modified;
             await _context.SaveChangesAsync();
         }
+
 
         public static async Task<List<Doctor>> GetBySpecialtyAsync(int specialtyId)
         {

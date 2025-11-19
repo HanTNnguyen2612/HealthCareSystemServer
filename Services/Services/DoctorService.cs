@@ -22,33 +22,63 @@ namespace Services.Services
 
         public async Task<DoctorProfileDTO?> GetDoctorProfileAsync(int userId)
         {
+            // Đảm bảo Repository có Include(d => d.User) và Include(d => d.Specialty)
             var doctor = await _doctorRepository.GetDoctorByUserIdAsync(userId);
-            if (doctor == null || doctor.User == null) return null;
+            if (doctor == null) return null;
 
             return new DoctorProfileDTO
             {
                 UserId = doctor.UserId,
-                FullName = doctor.User.FullName ?? string.Empty,
-                Email = doctor.User.Email ?? string.Empty,
-                PhoneNumber = doctor.User.PhoneNumber ?? string.Empty,
+                // User Info
+                FullName = doctor.User.FullName,
+                Email = doctor.User.Email,
+                PhoneNumber = doctor.User.PhoneNumber,
                 AvatarUrl = doctor.User.AvatarUrl,
-                SpecialtyName = doctor.Specialty?.Name,
-                Rating = doctor.Rating
+
+                // Doctor Info
+                SpecialtyId = doctor.SpecialtyId,
+                SpecialtyName = doctor.Specialty?.Name ?? "General", // Lấy tên từ bảng Specialty
+                Experience = doctor.Experience ?? "", // DB là string
+                Bio = doctor.Bio ?? "",
+                Rating = doctor.Rating,
+
+                // Logic tách chuỗi: "Bằng A,Bằng B" -> List ["Bằng A", "Bằng B"]
+                Qualifications = !string.IsNullOrEmpty(doctor.Qualifications)
+                                 ? doctor.Qualifications.Split(',').Select(x => x.Trim()).ToList()
+                                 : new List<string>()
             };
         }
 
-        public async Task<bool> UpdateDoctorProfileAsync(DoctorProfileDTO doctorDto)
+        public async Task<bool> UpdateDoctorProfileAsync(UpdateDoctorProfileDTO dto)
         {
-            var doctor = await _doctorRepository.GetDoctorByUserIdAsync(doctorDto.UserId);
-            if (doctor == null || doctor.User == null) return false;
+            var doctor = await _doctorRepository.GetDoctorByUserIdAsync(dto.UserId);
+            if (doctor == null) return false;
 
-            // Cập nhật dữ liệu User
-            doctor.User.FullName = doctorDto.FullName;
-            doctor.User.PhoneNumber = doctorDto.PhoneNumber;
-            doctor.User.AvatarUrl = doctorDto.AvatarUrl;
+            // 1. Update User Info
+            doctor.User.FullName = dto.FullName;
+            doctor.User.PhoneNumber = dto.PhoneNumber;
 
-            // Cập nhật dữ liệu Doctor
-            doctor.Rating = doctorDto.Rating;
+            // 2. Update Doctor Info
+            // Nếu Frontend gửi SpecialtyId, ta update ID
+            if (dto.SpecialtyId.HasValue && dto.SpecialtyId > 0)
+            {
+                doctor.SpecialtyId = dto.SpecialtyId;
+            }
+
+            doctor.Experience = dto.Experience;
+            doctor.Bio = dto.Bio;
+
+            // 3. Update Qualifications (Gộp List -> String để lưu DB)
+            if (dto.Qualifications != null && dto.Qualifications.Any())
+            {
+                doctor.Qualifications = string.Join(",", dto.Qualifications);
+            }
+            else
+            {
+                doctor.Qualifications = "";
+            }
+
+            doctor.UpdatedAt = DateTime.UtcNow;
 
             await _doctorRepository.UpdateDoctorAsync(doctor);
             return true;
@@ -74,7 +104,7 @@ namespace Services.Services
                     AvatarUrl = doctor.User.AvatarUrl,
                     SpecialtyName = doctor.Specialty?.Name,
                     Rating = doctor.Rating,
-                    Description = doctor.Bio 
+                    Bio = doctor.Bio 
                 };
             })
             .Where(dto => dto != null)

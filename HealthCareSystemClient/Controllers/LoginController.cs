@@ -1,5 +1,6 @@
 ﻿using Azure.Core;
 using BusinessObjects.DataTransferObjects.AuthDTOs;
+using BusinessObjects.Domain;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -60,8 +61,10 @@ namespace HealthCareSystemClient.Controllers
                     HttpContext.Session.SetInt32("UserId", loginResponse.UserId);
                     HttpContext.Session.SetString("Email", loginResponse.Email);
                     HttpContext.Session.SetString("Role", loginResponse.Role ?? string.Empty);
+                    HttpContext.Session.SetString("FullName", loginResponse.FullName ?? loginResponse.Email);
                     HttpContext.Session.SetString("AccessToken", loginResponse.Token);
                     HttpContext.Session.SetString("TokenExpiry", loginResponse.ExpiresAt.ToString("O"));
+                    HttpContext.Session.SetString("AvatarUrl", loginResponse.AvatarUrl ?? "/images/default-user.png");
 
                     if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                     {
@@ -131,6 +134,7 @@ namespace HealthCareSystemClient.Controllers
                     HttpContext.Session.SetInt32("UserId", loginResponse.UserId);
                     HttpContext.Session.SetString("Email", loginResponse.Email);
                     HttpContext.Session.SetString("Role", loginResponse.Role ?? "");
+                    HttpContext.Session.SetString("FullName", loginResponse.FullName ?? loginResponse.Email);
                     HttpContext.Session.SetString("AccessToken", loginResponse.Token);
                     HttpContext.Session.SetString("TokenExpiry", loginResponse.ExpiresAt.ToString("O"));
 

@@ -1,6 +1,7 @@
 ﻿using BusinessObjects.DataTransferObjects.PatientDTOs;
 using Microsoft.AspNetCore.Mvc;
 using Services.Interface;
+using System.Security.Claims;
 
 namespace HealthcareSystemAPI.Controllers
 {
@@ -23,15 +24,49 @@ namespace HealthcareSystemAPI.Controllers
         {
             try
             {
+                // Validate: Chỉ cho phép xem profile của chính mình (trừ khi là Admin/Doctor)
+                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (currentUserId != null && int.Parse(currentUserId) != userId)
+                {
+                    return Forbid();
+                }
+
                 var profile = await _patientService.GetPatientProfileAsync(userId);
-                if (profile == null)
-                    return NotFound("Patient not found.");
+                if (profile == null) return NotFound("Patient not found.");
+
                 return Ok(profile);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting patient profile for userId {UserId}", userId);
-                return StatusCode(500, "An error occurred while retrieving patient profile.");
+                _logger.LogError(ex, "Error getting profile {UserId}", userId);
+                return StatusCode(500, "Internal Server Error");
+            }
+        }
+
+        // PUT: api/patient/profile
+        [HttpPut("profile")]
+        public async Task<IActionResult> UpdatePatientProfile([FromBody] UpdatePatientProfileDTO dto)
+        {
+            if (dto == null) return BadRequest("Invalid data.");
+
+            // Validate Security: User chỉ được sửa profile của chính mình
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(currentUserId) || int.Parse(currentUserId) != dto.UserId)
+            {
+                return Unauthorized("You can only update your own profile.");
+            }
+
+            try
+            {
+                var success = await _patientService.UpdatePatientProfileAsync(dto);
+                if (!success) return NotFound("Patient record not found.");
+
+                return Ok(new { message = "Profile updated successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating profile {UserId}", dto.UserId);
+                return StatusCode(500, "Internal Server Error");
             }
         }
 
@@ -64,18 +99,30 @@ namespace HealthcareSystemAPI.Controllers
             }
         }
 
-        // PUT: api/patient
-        [HttpPut]
-        public async Task<IActionResult> UpdatePatientProfile([FromBody] PatientProfileDTO patientDto)
+        // PUT: api/patient/health
+        [HttpPut("health")]
+        public async Task<IActionResult> UpdatePatientHealthInfo([FromBody] UpdateHealthInfoDTO dto)
         {
-            if (patientDto == null)
-                return BadRequest("Invalid data.");
+            if (dto == null) return BadRequest("Invalid data.");
 
-            var success = await _patientService.UpdatePatientProfileAsync(patientDto);
-            if (!success)
-                return NotFound("Patient not found.");
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(currentUserId) || int.Parse(currentUserId) != dto.UserId)
+            {
+                return Unauthorized("You can only update your own health information.");
+            }
 
-            return Ok("Patient profile updated successfully.");
+            try
+            {
+                var success = await _patientService.UpdateHealthInfoAsync(dto);
+                if (!success) return NotFound("Patient record not found for health update.");
+
+                return Ok(new { message = "Health information updated successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating health info {UserId}", dto.UserId);
+                return StatusCode(500, "Internal Server Error");
+            }
         }
     }
 }
