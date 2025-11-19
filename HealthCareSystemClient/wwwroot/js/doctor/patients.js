@@ -15,11 +15,11 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function initializePatients() {
-    const doctorName = localStorage.getItem("doctorName") || "Dr. Sarah Johnson";
-    const doctorNameElement = document.getElementById("doctorName");
-    if (doctorNameElement) {
-        doctorNameElement.textContent = doctorName;
-    }
+    //const doctorName = localStorage.getItem("doctorName") || "Dr. Sarah Johnson";
+    //const doctorNameElement = document.getElementById("doctorName");
+    //if (doctorNameElement) {
+    //    doctorNameElement.textContent = doctorName;
+    //}
     // Kích hoạt nút 'All Patients' mặc định
     const allBtn = document.querySelector(".filter-btn[data-status='all']");
     if (allBtn) allBtn.classList.add("active");
@@ -49,11 +49,14 @@ async function loadPatients() {
 
         // Gán dữ liệu cho biến toàn cục
         // Chú ý: Backend có thể trả về các trường khác nhau, ta cần chuẩn hóa ID và STATUS
+        
         allPatients = data.map(p => ({
             ...p,
-            id: p.id || p.userId, // Sử dụng ID hoặc UserId (quan trọng cho API gọi lại)
-            status: (p.status || 'active').toLowerCase(),
-            name: p.fullName || p.name || 'Unknown Patient'
+            id: p.userId || p.id, // Ưu tiên userId nếu có, không thì dùng id
+            name: p.fullName || p.name || 'Unknown Patient', // Fallback tên
+            email: p.email || 'N/A',
+            phone: p.phoneNumber || p.phone || 'N/A',
+            status: (p.status || 'active').toLowerCase()
         }));
 
         applyFiltersAndSearch();
@@ -116,8 +119,8 @@ function createPatientCard(patient) {
     const statusClass = (patient.status || 'active').toLowerCase();
     const condition = patient.condition || 'N/A';
     const lastVisit = formatDate(patient.lastVisit);
-    const avatar = patient.avatar || 'https://placehold.co/60x60/8863A2/FFFFFF?text=P';
-
+    const avatar = 'https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg' || 'https://placehold.co/60x60/8863A2/FFFFFF?text=P';
+    if (!patient.id) console.error("Patient missing ID:", patient);
     return `
         <div class="patient-card" onclick="viewPatientDetails(${patient.id})">
             <span class="patient-status ${statusClass}">${statusClass}</span>
@@ -126,12 +129,7 @@ function createPatientCard(patient) {
                 <div class="patient-info">
                     <h6>${patient.name}</h6>
                     <p>${patient.email || 'N/A'}</p>
-                    <p class="patient-age">Age ${patient.age || 'N/A'}</p>
                 </div>
-            </div>
-            <div class="patient-details">
-                <div class="patient-condition">${condition}</div>
-                <div class="patient-last-visit">Last visit: ${lastVisit}</div>
             </div>
             <div class="patient-actions" onclick="event.stopPropagation()">
                 <button class="btn btn-sm btn-primary" onclick="scheduleAppointment(${patient.id})">
@@ -192,107 +190,171 @@ function filterPatients(status, event) {
  * Tải chi tiết bệnh nhân từ API và hiển thị Modal
  */
 async function viewPatientDetails(patientId) {
-    let patient;
+    console.log("Viewing details for ID:", patientId);
 
-    // 1. Tìm kiếm cục bộ trước
-    patient = allPatients.find((p) => p.id == patientId);
+    // 1. Tìm trong list có sẵn (convert sang string để so sánh cho chắc)
+    let patient = allPatients.find((p) => String(p.id) === String(patientId));
 
-    // 2. Nếu không tìm thấy hoặc cần dữ liệu chi tiết hơn, gọi API
-    if (!patient || !patient.phone || !patient.dob) {
-        try {
-            // GET: /api/Patient/{userId}
-            const response = await fetch(`${API_URL}/${patientId}`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            patient = await response.json();
+    // 2. Luôn gọi API lấy chi tiết để có data mới nhất (Health info, height, weight...)
+    try {
+        const response = await fetch(`${API_URL}/${patientId}`);
+        if (!response.ok) throw new Error("Failed to fetch details");
 
-            // Cập nhật lại dữ liệu cục bộ (tùy chọn)
-            if (patient) {
-                const index = allPatients.findIndex(p => p.id == patientId);
-                if (index !== -1) {
-                    allPatients[index] = { ...allPatients[index], ...patient };
-                }
-            }
-        } catch (e) {
-            console.error("Error fetching detailed patient profile:", e);
-            showNotification("Could not load detailed patient profile from API.", "danger");
+        const rawData = await response.json();
+        console.log("API Raw Data:", rawData); // Debug xem API trả về gì
+
+        // --- CHUẨN HÓA DỮ LIỆU ---
+        patient = {
+            ...rawData,
+            name: rawData.fullName || 'Unknown',
+            email: rawData.email || 'N/A',
+            phone: rawData.phoneNumber || 'N/A',
+            address: rawData.address || 'N/A',
+            dob: rawData.dateOfBirth, // Format: YYYY-MM-DD
+            avatar: rawData.avatarUrl || '/placeholder.svg?height=120&width=120',
+            gender: rawData.gender || 'N/A',
+
+            // Health Metrics
+            bloodType: rawData.bloodType || '--',
+            height: rawData.height || '--',
+            weight: rawData.weight || '--',
+            bmi: rawData.bmi ? Number(rawData.bmi).toFixed(1) : '--',
+
+            // Lists (Xử lý mảng hoặc null)
+            allergies: (rawData.allergies && rawData.allergies.length > 0) ? rawData.allergies : [],
+            medications: (rawData.medications && rawData.medications.length > 0) ? rawData.medications : [],
+
+            // Medical History (Map từ conditions)
+            medicalHistory: (rawData.conditions && rawData.conditions.length > 0)
+                ? rawData.conditions.join(', ')
+                : 'No history recorded.',
+
+            // Emergency (Mapping đúng trường từ DTO)
+            // Trong DB chỉ có EmergencyPhoneNumber, không có Name nên Name để N/A hoặc ẩn đi
+            emergencyPhone: rawData.emergencyPhoneNumber || 'N/A',
+            emergencyContactName: 'N/A'
+        };
+
+    } catch (e) {
+        console.error("Error loading details:", e);
+        // Nếu lỗi API thì dùng tạm data từ list (nếu có)
+        if (!patient) {
+            alert("Could not load patient details.");
             return;
         }
     }
 
-    if (!patient) {
-        showNotification("Patient data not found.", "warning");
-        return;
+    // --- TÍNH TUỔI ---
+    let age = 'N/A';
+    if (patient.dob) {
+        const birthDate = new Date(patient.dob);
+        const today = new Date();
+        let ageCalc = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            ageCalc--;
+        }
+        age = ageCalc;
     }
 
+    // --- RENDER HTML (Theo đúng layout trong ảnh) ---
     const modalTitle = document.getElementById("patientDetailsTitle");
     const modalBody = document.getElementById("patientDetailsBody");
-    const patientAvatar = patient.avatar || 'https://placehold.co/120x120/8863A2/FFFFFF?text=P';
 
     modalTitle.textContent = `${patient.name} - Patient Details`;
 
     modalBody.innerHTML = `
     <div class="row">
-      <div class="col-md-4">
-        <div class="text-center mb-3">
-          <img src="${patientAvatar}" alt="${patient.name}" class="profile-avatar-xl">
-          <h5 class="mt-2">${patient.name}</h5>
-          <p class="text-muted">Age ${patient.age || 'N/A'}</p>
-          <span class="badge bg-${getStatusColor(patient.status || 'active')}">${patient.status || 'active'}</span>
+      <div class="col-md-4 border-end text-center">
+        <div class="mb-4 mt-2">
+          <img src="${patient.avatar}" alt="${patient.name}" class="rounded-circle mb-3 shadow-sm" 
+               style="width: 100px; height: 100px; object-fit: cover;" 
+               onerror="this.src='/placeholder.svg?height=120&width=120'">
+          
+          <h5 class="mb-1 fw-bold">${patient.name}</h5>
+          <p class="text-muted small mb-2">Age: ${age}</p>
+          <span class="badge bg-success rounded-pill px-3">Active Patient</span>
+        </div>
+        
+        <div class="text-start px-3">
+            <label class="small text-muted fw-bold mb-2" style="font-size: 0.75rem; letter-spacing: 1px;">CONTACT INFO</label>
+            <div class="mb-2">
+                <i class="fas fa-envelope text-primary me-2" style="width: 20px;"></i>
+                <span>${patient.email}</span>
+            </div>
+            <div class="mb-2">
+                <i class="fas fa-phone text-primary me-2" style="width: 20px;"></i>
+                <span>${patient.phone}</span>
+            </div>
+            <div class="mb-2">
+                <i class="fas fa-map-marker-alt text-primary me-2" style="width: 20px;"></i>
+                <span>${patient.address}</span>
+            </div>
         </div>
       </div>
-      <div class="col-md-8">
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            <label class="form-label fw-bold">Email</label>
-            <p>${patient.email || 'N/A'}</p>
-          </div>
-          <div class="col-md-6 mb-3">
-            <label class="form-label fw-bold">Phone</label>
-            <p>${patient.phone || 'N/A'}</p>
-          </div>
-          <div class="col-md-6 mb-3">
-            <label class="form-label fw-bold">Date of Birth</label>
-            <p>${patient.dob ? formatDate(patient.dob) : 'N/A'}</p>
-          </div>
-          <div class="col-md-6 mb-3">
-            <label class="form-label fw-bold">Primary Condition</label>
-            <p>${patient.condition || 'N/A'}</p>
-          </div>
-          <div class="col-md-12 mb-3">
-            <label class="form-label fw-bold">Address</label>
-            <p>${patient.address || 'N/A'}</p>
-          </div>
+      
+      <div class="col-md-8 ps-4">
+        <h5 class="mb-3">Health Profile</h5>
+        
+        <div class="row mb-4 g-2">
+            <div class="col-3">
+                <div class="p-2 border rounded text-center bg-light">
+                    <small class="d-block text-muted mb-1" style="font-size: 0.75rem;">Blood Type</small>
+                    <span class="fw-bold text-danger fs-5">${patient.bloodType}</span>
+                </div>
+            </div>
+            <div class="col-3">
+                <div class="p-2 border rounded text-center bg-light">
+                    <small class="d-block text-muted mb-1" style="font-size: 0.75rem;">Height</small>
+                    <span class="fw-bold text-dark fs-5">${patient.height} <small class="text-muted fs-6">cm</small></span>
+                </div>
+            </div>
+            <div class="col-3">
+                <div class="p-2 border rounded text-center bg-light">
+                    <small class="d-block text-muted mb-1" style="font-size: 0.75rem;">Weight</small>
+                    <span class="fw-bold text-dark fs-5">${patient.weight} <small class="text-muted fs-6">kg</small></span>
+                </div>
+            </div>
+            <div class="col-3">
+                <div class="p-2 border rounded text-center bg-light">
+                    <small class="d-block text-muted mb-1" style="font-size: 0.75rem;">BMI</small>
+                    <span class="fw-bold text-dark fs-5">${patient.bmi}</span>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
 
-    <hr>
-    
-    <h6 class="mb-3">Health Profile</h6>
-    <div class="row">
-      <div class="col-md-6 mb-3">
-        <h6>Medical History</h6>
-        <p class="bg-light p-2 rounded">${patient.medicalHistory || 'No history recorded.'}</p>
-        <h6>Emergency Contact</h6>
-        <p><strong>Name:</strong> ${patient.emergencyContact || 'N/A'}</p>
-        <p><strong>Phone:</strong> ${patient.emergencyPhone || 'N/A'}</p>
-      </div>
-      <div class="col-md-6 mb-3">
-        <h6>Current Medications</h6>
-        <ul class="list-unstyled">
-          ${(patient.medications && patient.medications.length > 0) ? patient.medications.map((med) => `<li><i class="fas fa-pills text-primary me-2"></i>${med}</li>`).join("") : '<li>No current medications.</li>'}
-        </ul>
-        <h6>Allergies</h6>
-        <ul class="list-unstyled">
-          ${(patient.allergies && patient.allergies.length > 0) ? patient.allergies.map((allergy) => `<li><i class="fas fa-exclamation-triangle text-warning me-2"></i>${allergy}</li>`).join("") : '<li>No known allergies.</li>'}
-        </ul>
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <h6 class="fw-bold small">Allergies</h6>
+                ${patient.allergies.length > 0
+            ? `<ul class="list-unstyled text-danger small">${patient.allergies.map(a => `<li>• ${a}</li>`).join('')}</ul>`
+            : '<p class="text-muted small">No records found.</p>'}
+            </div>
+            <div class="col-md-6">
+                <h6 class="fw-bold small">Current Medications</h6>
+                ${patient.medications.length > 0
+            ? `<ul class="list-unstyled text-primary small">${patient.medications.map(m => `<li>• ${m}</li>`).join('')}</ul>`
+            : '<p class="text-muted small">No records found.</p>'}
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <h6 class="fw-bold small">Medical History</h6>
+            <div class="p-2 bg-light rounded text-muted small">
+                ${patient.medicalHistory}
+            </div>
+        </div>
+
+        <div class="mb-0">
+            <h6 class="fw-bold small">Emergency Contact</h6>
+             <div class="row small">
+                 <div class="col-12"><span class="fw-bold">Phone:</span> ${patient.emergencyPhone}</div>
+             </div>
+        </div>
       </div>
     </div>
     `;
 
-    // Hiển thị modal
     const modal = new window.bootstrap.Modal(document.getElementById("patientDetailsModal"));
     modal.show();
 }

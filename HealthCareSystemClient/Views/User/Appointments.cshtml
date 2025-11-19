@@ -3,6 +3,9 @@
 @{
     Layout = "_LayoutUser";
     ViewData["Title"] = "Book Appointment";
+    var fullName = Context.Session.GetString("FullName") ?? "Guest";
+    var role = Context.Session.GetString("Role");
+    var avatarUrl = Context.Session.GetString("AvatarUrl");
 }
 <!-- Main Content -->
 <div class="main-content">
@@ -24,10 +27,6 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
         }
-        <div class="search-container">
-            <i class="fas fa-search search-icon"></i>
-            <input type="text" class="search-input" placeholder="Search appointments..." id="searchInput">
-        </div>
         <div class="header-actions">
             <button style="height: 55px !important;" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#bookAppointmentModal">
                 <i class="fas fa-plus" style="margin-top: 17px !important;"></i>
@@ -39,10 +38,10 @@
             </button>
             <a asp-action="Profile" asp-controller="User" style="text-decoration: none;">
                 <div class="user-profile">
-                    <img src="@(ViewBag.CurrentUser?.AvatarUrl ?? "/images/default-user.png")" alt="User" class="user-avatar">
+                    <img src=@avatarUrl alt="User" class="user-avatar">
                     <div class="user-info">
-                        <h6 id="userName">@(ViewBag.CurrentUser?.FullName ?? "User")</h6>
-                        <p>Patient</p>
+                        <h6 id="userName">@fullName</h6>
+                        <p>@role</p>
                     </div>
                 </div>
             </a>
@@ -86,10 +85,10 @@
                                     <div class="appointment-card">
                                         <div class="appointment-header">
                                             <div class="appointment-doctor">
-                                                <img src="@(string.IsNullOrEmpty(appointment.DoctorAvatarUrl) ? "/images/default-doctor.png" : appointment.DoctorAvatarUrl)" alt="Doctor" class="doctor-avatar-small">
+                                                <img src="https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg" alt="Doctor" class="doctor-avatar-small">
                                                 <div class="doctor-info">
                                                     <h6>@appointment.DoctorName</h6>
-                                                    <p>@appointment.SpecialtyName</p>
+                                                    <p>Cardiology</p>
                                                 </div>
                                             </div>
                                             <div class="appointment-status">
@@ -148,10 +147,10 @@
                                     <div class="appointment-card">
                                         <div class="appointment-header">
                                             <div class="appointment-doctor">
-                                                <img src="@(string.IsNullOrEmpty(appointment.DoctorAvatarUrl) ? "/images/default-doctor.png" : appointment.DoctorAvatarUrl)" alt="Doctor" class="doctor-avatar-small">
+                                                <img src="https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg" alt="Doctor" class="doctor-avatar-small">
                                                 <div class="doctor-info">
                                                     <h6>@appointment.DoctorName</h6>
-                                                    <p>@appointment.SpecialtyName</p>
+                                                    <p>Cardiology</p>
                                                 </div>
                                             </div>
                                             <div class="appointment-status">
@@ -201,10 +200,10 @@
                                     <div class="appointment-card">
                                         <div class="appointment-header">
                                             <div class="appointment-doctor">
-                                                <img src="@(string.IsNullOrEmpty(appointment.DoctorAvatarUrl) ? "/images/default-doctor.png" : appointment.DoctorAvatarUrl)" alt="Doctor" class="doctor-avatar-small">
+                                                <img src="https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg" alt="Doctor" class="doctor-avatar-small">
                                                 <div class="doctor-info">
                                                     <h6>@appointment.DoctorName</h6>
-                                                    <p>@appointment.SpecialtyName</p>
+                                                    <p>Cardiology</p>
                                                 </div>
                                             </div>
                                             <div class="appointment-status">
@@ -843,6 +842,28 @@
     </div>
 </div>
 
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // 1. Link ảnh bạn muốn set cứng
+        const staticImage = "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"; // Hoặc "/images/default-avatar.png"
+
+        // 2. Chọn tất cả các class liên quan đến avatar trong trang
+        // (Dựa trên code cũ của bạn, bạn có các class này)
+        const avatarSelectors = '.profileImage';
+
+        const images = document.querySelectorAll(avatarSelectors);
+
+        // 3. Duyệt qua và đổi src cưỡng bức
+        images.forEach(img => {
+            img.src = staticImage;
+
+            // Xử lý trường hợp ảnh load lỗi thì vẫn giữ ảnh này
+            img.onerror = function() {
+                this.src = staticImage;
+            };
+        });
+    });
+</script>
 <style>
     .appointment-details-modal .doctor-profile {
         display: flex;

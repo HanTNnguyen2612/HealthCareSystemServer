@@ -6,26 +6,7 @@
     ViewData["Title"] = "Profile";
 }
 <div class="main-content">
-    <header class="header">
-        <h1 class="header-title">My Profile</h1>
-        <div class="search-container">
-            <i class="fas fa-search search-icon"></i>
-            <input type="text" class="search-input" placeholder="Search..." id="searchInput">
-        </div>
-        <div class="header-actions">
-            <button class="notification-btn">
-                <i class="fas fa-bell"></i>
-                <span class="notification-badge">3</span>
-            </button>
-            <div class="user-profile">
-                <img src="/placeholder.svg?height=32&width=32" alt="User" class="user-avatar" id="headerAvatar">
-                <div class="user-info">
-                    <h6 id="headerName">Loading...</h6>
-                    <p>Patient</p>
-                </div>
-            </div>
-        </div>
-    </header>
+    <partial name="_Header" />
 
     <div class="content">
         <div class="profile-content">

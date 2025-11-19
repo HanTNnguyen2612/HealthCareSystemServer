@@ -4,6 +4,10 @@
     Layout = "_LayoutDoctor";
     ViewData["Title"] = "Patients";
     var apiBaseUrl = "https://localhost:7293";
+    var fullname = Context.Session.GetString("FullName");
+    var role = Context.Session.GetString("Role");
+    var avatarUrl = Context.Session.GetString("AvatarUrl");
+    string profileUrl = "/Doctor/Profile";
 }
 
 <script>
@@ -15,10 +19,6 @@
     <!-- Header -->
     <header class="header">
         <h1 class="header-title">My Patients</h1>
-        <div class="search-container">
-            <i class="fas fa-search search-icon"></i>
-            <input type="text" class="search-input" placeholder="Search patients..." id="searchInput">
-        </div>
         <div class="header-actions">
             <button class="btn btn-primary" onclick="openAddPatientModal()">
                 <i class="fas fa-user-plus"></i>
@@ -28,11 +28,11 @@
                 <i class="fas fa-bell"></i>
                 <span class="notification-badge">5</span>
             </button>
-            <div class="user-profile" onclick="window.location.href='doctor-profile.html'">
-                <img src="/placeholder.svg?height=32&width=32" alt="Doctor" class="user-avatar">
+            <div class="user-profile" onclick="window.location.href='@profileUrl'">
+                <img src=@avatarUrl alt="Doctor" class="user-avatar">
                 <div class="user-info">
-                    <h6 id="doctorName">Dr. Sarah Johnson</h6>
-                    <p>Cardiologist</p>
+                    <h6 id="doctorName">@fullname</h6>
+                    <p>@role</p>
                 </div>
             </div>
         </div>
