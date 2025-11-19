@@ -10,7 +10,8 @@ namespace Services.Interface
     public interface IPatientService
     {
         Task<PatientProfileDTO?> GetPatientProfileAsync(int userId);
-        Task<bool> UpdatePatientProfileAsync(PatientProfileDTO patientDto);
+        Task<bool> UpdatePatientProfileAsync(UpdatePatientProfileDTO updatePatientDto);
         Task<bool> CreatePatientProfileAsync(CreatePatientDTO patientDto);
+        Task<bool> UpdateHealthInfoAsync(UpdateHealthInfoDTO dto);
     }
 }

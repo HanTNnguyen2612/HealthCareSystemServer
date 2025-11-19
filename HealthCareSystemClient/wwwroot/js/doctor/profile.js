@@ -1,164 +1,249 @@
-﻿// Doctor Profile JavaScript
-document.addEventListener("DOMContentLoaded", () => {
-    initializeProfile()
-    loadProfileData()
-    setupEventListeners()
-})
+﻿/**
+ * doctor/profile.js - Complete Version
+ */
 
-function initializeProfile() {
-    const doctorName = localStorage.getItem("doctorName") || "Dr. Sarah Johnson"
-    document.getElementById("doctorName").textContent = doctorName
-    document.getElementById("profileName").textContent = doctorName
-}
+const CONFIG = window.AppConfig || { apiBaseUrl: '', userId: 0, token: '' };
+let currentProfileData = null; // Lưu trữ toàn bộ data bác sĩ
 
-function loadProfileData() {
-    // Load doctor profile data (in real app, this would come from API)
-    const profileData = {
-        firstName: "Sarah",
-        lastName: "Johnson",
-        specialty: "Cardiologist",
-        email: "sarah.johnson@healthcare.com",
-        phone: "+1 (555) 123-4567",
-        license: "MD123456789",
-        medicalSchool: "Harvard Medical School",
-        hospital: "City General Hospital",
-        experience: "15 years",
-        rating: "4.9",
-        totalPatients: "1,247",
-        monthlyAppointments: "156",
-        avatar: "/placeholder.svg?height=120&width=120",
+document.addEventListener('DOMContentLoaded', () => {
+    if (!CONFIG.token) {
+        console.warn("No token found");
+        return;
     }
+    loadProfile();
 
-    // Update profile display
-    document.getElementById("profileEmail").textContent = profileData.email
-    document.getElementById("medicalSchool").textContent = profileData.medicalSchool
+    // Event xóa Tag trong Modal
+    const tagContainer = document.getElementById('editQualificationsContainer');
+    if (tagContainer) {
+        tagContainer.addEventListener('dblclick', function (event) {
+            if (event.target.classList.contains('health-tag')) {
+                if (confirm(`Remove "${event.target.textContent}"?`)) {
+                    event.target.remove();
+                }
+            }
+        });
+    }
+});
 
-    // Store in localStorage for editing
-    localStorage.setItem("doctorProfile", JSON.stringify(profileData))
+// --- 1. LOAD DATA ---
+async function loadProfile() {
+    try {
+        const res = await fetch(`${CONFIG.apiBaseUrl}/api/doctor/${CONFIG.userId}`, {
+            headers: { 'Authorization': `Bearer ${CONFIG.token}` }
+        });
+
+        if (!res.ok) throw new Error("Failed to load profile");
+        const data = await res.json();
+        currentProfileData = data; // Cache dữ liệu để dùng khi Save
+
+        console.log("Doctor Data:", data);
+
+        // A. Hiển thị UI (View)
+        const drName = "Dr. " + (data.fullName || "Unknown");
+        setText('headerName', drName);
+        setText('dispFullName', data.fullName);
+        setText('dispSpecialtyHeader', data.specialtyName || "General");
+        setText('dispEmail', data.email);
+        setText('dispPhone', data.phoneNumber || '--');
+
+        // Professional Info
+        setText('dispSpecialty', data.specialtyName || '--');
+        setText('dispLicense', data.licenseNumber || '--');
+        setText('dispExp', data.experience || '--');
+        setText('dispBio', data.bio || 'No biography information available.');
+
+        if (data.avatarUrl) {
+            document.getElementById('headerAvatar').src = data.avatarUrl;
+            document.getElementById('dispAvatar').src = data.avatarUrl;
+        }
+
+        // Render Tags (Qualifications) ở màn hình chính
+        renderTags('listQualifications', data.qualifications, 'condition', false);
+
+        // B. Điền sẵn vào Form (Pre-fill) để nếu user bấm Edit là có ngay
+        fillForms(data);
+
+    } catch (err) {
+        console.error(err);
+    }
 }
 
-function setupEventListeners() {
-    // Toggle switches
-    const toggles = document.querySelectorAll('input[type="checkbox"]')
-    toggles.forEach((toggle) => {
-        toggle.addEventListener("change", function () {
-            console.log(`${this.id} toggled:`, this.checked)
-            // Save setting to localStorage or API
-            saveSetting(this.id, this.checked)
-        })
-    })
+function fillForms(data) {
+    // 1. Basic Info Form
+    setValue('editFullName', data.fullName);
+    setValue('editEmail', data.email);
+    setValue('editPhone', data.phoneNumber);
+
+    // 2. Professional Info Form
+    setValue('editSpecialty', data.specialtyName);
+    setValue('editLicense', data.licenseNumber);
+    setValue('editExperience', data.experience);
+
+    // Render Tags vào trong Modal (cho phép Add/Remove)
+    renderTags('editQualificationsContainer', data.qualifications, 'condition', true);
+
+    // 3. Bio Form
+    setValue('editBioInput', data.bio);
 }
 
-function saveSetting(settingId, value) {
-    const settings = JSON.parse(localStorage.getItem("doctorSettings") || "{}")
-    settings[settingId] = value
-    localStorage.setItem("doctorSettings", JSON.stringify(settings))
-    showNotification("Setting saved successfully", "success")
+// --- 2. MODAL OPENERS (Các hàm bạn bị thiếu) ---
+
+function editBasicInfo() {
+    // Mở modal sửa tên, sđt
+    if (currentProfileData) fillForms(currentProfileData);
+    new bootstrap.Modal(document.getElementById('editBasicModal')).show();
 }
 
 function editProfessionalInfo() {
-    const profileData = JSON.parse(localStorage.getItem("doctorProfile") || "{}")
-
-    // Populate edit form
-    document.getElementById("editFirstName").value = profileData.firstName || ""
-    document.getElementById("editLastName").value = profileData.lastName || ""
-    document.getElementById("editSpecialty").value = profileData.specialty?.toLowerCase() || "cardiology"
-    document.getElementById("editEmail").value = profileData.email || ""
-    document.getElementById("editPhone").value = profileData.phone || ""
-    document.getElementById("editLicense").value = profileData.license || ""
-    document.getElementById("editMedicalSchool").value = profileData.medicalSchool || ""
-    document.getElementById("editHospital").value = profileData.hospital || ""
-
-    // Show modal
-    const modal = window.bootstrap.Modal(document.getElementById("editProfessionalModal"))
-    modal.show()
+    // Mở modal chuyên môn
+    if (currentProfileData) fillForms(currentProfileData);
+    new bootstrap.Modal(document.getElementById('editProfessionalModal')).show();
 }
 
-function saveProfessionalInfo() {
-    const form = document.getElementById("editProfessionalForm")
-    const formData = new FormData(form)
-
-    const updatedProfile = {
-        firstName: document.getElementById("editFirstName").value,
-        lastName: document.getElementById("editLastName").value,
-        specialty:
-            document.getElementById("editSpecialty").options[document.getElementById("editSpecialty").selectedIndex].text,
-        email: document.getElementById("editEmail").value,
-        phone: document.getElementById("editPhone").value,
-        license: document.getElementById("editLicense").value,
-        medicalSchool: document.getElementById("editMedicalSchool").value,
-        hospital: document.getElementById("editHospital").value,
-    }
-
-    // Update display
-    const fullName = `Dr. ${updatedProfile.firstName} ${updatedProfile.lastName}`
-    document.getElementById("profileName").textContent = fullName
-    document.getElementById("doctorName").textContent = fullName
-    document.getElementById("profileSpecialty").textContent = updatedProfile.specialty
-    document.getElementById("profileEmail").textContent = updatedProfile.email
-    document.getElementById("medicalSchool").textContent = updatedProfile.medicalSchool
-
-    // Save to localStorage
-    localStorage.setItem("doctorProfile", JSON.stringify(updatedProfile))
-    localStorage.setItem("doctorName", fullName)
-
-    // Close modal
-    window.bootstrap.Modal.getInstance(document.getElementById("editProfessionalModal")).hide()
-    showNotification("Profile updated successfully!", "success")
+function editBioInfo() {
+    // Mở modal Bio
+    if (currentProfileData) fillForms(currentProfileData);
+    new bootstrap.Modal(document.getElementById('editBioModal')).show();
 }
 
-function editSpecializations() {
-    console.log("Editing specializations")
-    // Implement specializations editing modal
-    showNotification("Specializations editing coming soon", "info")
+// --- 3. SAVE LOGIC (Gửi API PUT) ---
+
+// Save Basic (Name, Phone)
+async function saveBasicInfo() {
+    if (!currentProfileData) return;
+
+    const updateData = {
+        // Merge dữ liệu cũ (để không mất Address, Gender, DOB...)
+        ...currentProfileData,
+
+        // Ghi đè dữ liệu mới từ form
+        fullName: getValue('editFullName'),
+        phoneNumber: getValue('editPhone')
+    };
+
+    await sendUpdate(updateData, 'editBasicModal');
 }
 
-function editSchedule() {
-    console.log("Editing schedule")
-    window.location.href = "doctor-schedule.html"
+// Save Professional (Specialty, License, Exp, Tags)
+async function saveProfessionalInfo() {
+    if (!currentProfileData) return;
+
+    const updateData = {
+        ...currentProfileData,
+
+        specialty: getValue('editSpecialty'), // Nếu backend nhận string name
+        // specialtyId: ... (Nếu backend cần ID thì phải xử lý dropdown)
+
+        licenseNumber: getValue('editLicense'),
+        experience: getValue('editExperience'),
+        qualifications: getTagsFromUI('editQualificationsContainer') // Lấy list tags mới
+    };
+
+    await sendUpdate(updateData, 'editProfessionalModal');
 }
 
-function changeAvatar() {
-    const input = document.createElement("input")
-    input.type = "file"
-    input.accept = "image/*"
-    input.onchange = (e) => {
-        const file = e.target.files[0]
-        if (file) {
-            const reader = new FileReader()
-            reader.onload = (e) => {
-                // Update avatar display
-                document.querySelector(".profile-avatar-xl").src = e.target.result
-                document.querySelector(".user-avatar").src = e.target.result
+// Save Bio
+async function saveBioInfo() {
+    if (!currentProfileData) return;
 
-                // Save to localStorage (in real app, upload to server)
-                localStorage.setItem("doctorAvatar", e.target.result)
-                showNotification("Avatar updated successfully!", "success")
-            }
-            reader.readAsDataURL(file)
+    const updateData = {
+        ...currentProfileData,
+        bio: getValue('editBioInput')
+    };
+
+    await sendUpdate(updateData, 'editBioModal');
+}
+
+// Hàm gọi API chung
+async function sendUpdate(data, modalId) {
+    try {
+        const btn = document.querySelector(`#${modalId} .btn-primary`);
+        const oldText = btn.innerText;
+        btn.innerText = "Saving...";
+        btn.disabled = true;
+
+        const res = await fetch(`${CONFIG.apiBaseUrl}/api/doctor/profile`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${CONFIG.token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (res.ok) {
+            alert("Updated successfully!");
+            const modal = bootstrap.Modal.getInstance(document.getElementById(modalId));
+            if (modal) modal.hide();
+            loadProfile(); // Reload lại UI
+        } else {
+            const txt = await res.text();
+            alert("Update failed: " + txt);
         }
-    }
-    input.click()
-}
 
-function showNotification(message, type = "info") {
-    const notification = document.createElement("div")
-    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`
-    notification.style.cssText = "top: 20px; right: 20px; z-index: 9999;"
-    notification.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `
-    document.body.appendChild(notification)
-
-    setTimeout(() => {
-        notification.remove()
-    }, 3000)
-}
-
-function logout() {
-    if (confirm("Are you sure you want to logout?")) {
-        localStorage.clear()
-        window.location.href = "login.html"
+        btn.innerText = oldText;
+        btn.disabled = false;
+    } catch (err) {
+        console.error(err);
+        alert("Error saving data");
     }
 }
+
+
+// --- HELPERS ---
+
+function renderTags(containerId, items, typeClass, allowAddRemove) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (items && items.length > 0) {
+        items.forEach(item => {
+            if (!item) return;
+            const span = document.createElement('span');
+            span.className = `health-tag ${typeClass}`;
+            span.textContent = item;
+            if (allowAddRemove) {
+                span.title = "Double click to remove";
+                span.style.cursor = "pointer";
+            }
+            container.appendChild(span);
+        });
+    }
+
+    if (allowAddRemove) {
+        const addBtn = document.createElement('button');
+        addBtn.type = "button"; // Prevent submit
+        addBtn.className = 'add-tag-btn';
+        addBtn.innerHTML = '<i class="fas fa-plus"></i> Add';
+        addBtn.onclick = () => addTagItem(containerId, typeClass);
+        container.appendChild(addBtn);
+    }
+}
+
+function addTagItem(containerId, typeClass) {
+    const val = prompt("Enter qualification:");
+    if (val && val.trim() !== "") {
+        const span = document.createElement('span');
+        span.className = `health-tag ${typeClass}`;
+        span.textContent = val.trim();
+        span.title = "Double click to remove";
+        span.style.cursor = "pointer";
+
+        const container = document.getElementById(containerId);
+        const btn = container.querySelector('.add-tag-btn');
+        container.insertBefore(span, btn);
+    }
+}
+
+function getTagsFromUI(containerId) {
+    const tags = document.querySelectorAll(`#${containerId} .health-tag`);
+    return Array.from(tags).map(t => t.textContent);
+}
+
+function setText(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = (val !== null && val !== undefined) ? val : '--';
+}
+function setValue(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.value = (val !== null && val !== undefined) ? val : '';
+}
+function getValue(id) { return document.getElementById(id)?.value; }

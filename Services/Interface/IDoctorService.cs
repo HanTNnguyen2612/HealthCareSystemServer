@@ -12,7 +12,7 @@ namespace Services.Interface
     {
         Task<IEnumerable<DoctorProfileDTO>> GetAllDoctors();
         Task<DoctorProfileDTO?> GetDoctorProfileAsync(int userId);
-        Task<bool> UpdateDoctorProfileAsync(DoctorProfileDTO doctorDto);
+        Task<bool> UpdateDoctorProfileAsync(UpdateDoctorProfileDTO doctorDto);
         Task<List<Doctor>> GetBySpecialtyAsync(int specialtyId);
     }
 }

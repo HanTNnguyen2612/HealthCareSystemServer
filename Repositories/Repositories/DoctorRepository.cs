@@ -12,11 +12,21 @@ namespace Repositories.Repositories
 {
     public class DoctorRepository : IDoctorRepository
     {
+        private readonly DoctorDAO _doctorDAO;
+
+        public DoctorRepository(DoctorDAO doctorDAO)
+        {
+            _doctorDAO = doctorDAO;
+        }
         public async Task<Doctor?> GetDoctorByUserIdAsync(int userId)
-            => await DoctorDAO.GetDoctorByUserIdAsync(userId);
+        {
+            return await _doctorDAO.GetDoctorByUserIdAsync(userId);
+        }
 
         public async Task UpdateDoctorAsync(Doctor doctor)
-            => await DoctorDAO.UpdateDoctorAsync(doctor);
+        {
+            await _doctorDAO.UpdateDoctorAsync(doctor);
+        }
         public async Task<List<Doctor>> GetBySpecialtyAsync(int specialtyId)
             => await DoctorDAO.GetBySpecialtyAsync(specialtyId);
 
