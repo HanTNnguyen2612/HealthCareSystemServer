@@ -12,28 +12,7 @@
 <!-- Main Content -->
 <div class="main-content">
     <!-- Header -->
-    <header class="header">
-        <h1 class="header-title">Find Doctors</h1>
-        <div class="search-container">
-            <i class="fas fa-search search-icon"></i>
-            <input type="text" class="search-input" placeholder="Search doctors or specialties..." id="searchInput">
-        </div>
-        <div class="header-actions">
-            <button class="notification-btn">
-                <i class="fas fa-bell"></i>
-                <span class="notification-badge">3</span>
-            </button>
-            <a asp-action="Profile" asp-controller="User" style="text-decoration: none;">
-                <div class="user-profile">
-                    <img src="@(ViewBag.CurrentUser?.AvatarUrl ?? "/images/default-user.png")" alt="User" class="user-avatar">
-                    <div class="user-info">
-                        <h6 id="userName">@(ViewBag.CurrentUser?.FullName ?? "User")</h6>
-                        <p>Patient</p>
-                    </div>
-                </div>
-            </a>
-        </div>
-    </header>
+    <partial name="_Header" />
 
     <!-- Content -->
     <div class="content">

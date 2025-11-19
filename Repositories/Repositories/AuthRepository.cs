@@ -48,11 +48,13 @@ namespace Repositories.Repositories
             return new LoginResponse
             {
                 UserId = user.UserId,
+                FullName = user.FullName ?? "",
                 Email = user.Email,
                 Role = user.Role,
                 Token = token,
+                AvatarUrl = user.AvatarUrl,
                 ExpiresAt = DateTime.UtcNow.AddMinutes(15)
-            };
+            }; ;
         }
 
         public async Task<LoginResponse?> LoginGoogleAsync(LoginGoogle request)

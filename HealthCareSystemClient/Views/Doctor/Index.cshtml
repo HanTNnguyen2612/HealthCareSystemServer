@@ -4,30 +4,12 @@
 @{
     Layout = "_LayoutDoctor";
     ViewData["Title"] = "Dashboard";
+    var avatarUrl = Context.Session.GetString("AvatarUrl");
 }
 <!-- Main Content -->
 <div class="main-content">
     <!-- Header -->
-    <header class="header">
-        <h1 class="header-title">Doctor Dashboard</h1>
-        <div class="search-container">
-            <i class="fas fa-search search-icon"></i>
-            <input type="text" class="search-input" placeholder="Search patients, appointments..." id="searchInput">
-        </div>
-        <div class="header-actions">
-            <button class="notification-btn">
-                <i class="fas fa-bell"></i>
-                <span class="notification-badge">5</span>
-            </button>
-            <div class="user-profile" onclick="window.location.href='doctor-profile.html'">
-                <img src="/placeholder.svg?height=32&width=32" alt="Doctor" class="user-avatar">
-                <div class="user-info">
-                    <h6 id="doctorName">Dr. Sarah Johnson</h6>
-                    <p>Cardiologist</p>
-                </div>
-            </div>
-        </div>
-    </header>
+    <partial name="_Header" />
 
     <!-- Content -->
     <div class="content">

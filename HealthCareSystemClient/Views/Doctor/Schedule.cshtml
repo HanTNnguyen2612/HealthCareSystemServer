@@ -7,22 +7,7 @@
 <!-- Main Content -->
 <div class="main-content">
     <!-- Header -->
-    <header class="header">
-        <h1 class="header-title">Schedule Management</h1>
-        <div class="header-actions">
-            <button class="notification-btn">
-                <i class="fas fa-bell"></i>
-                <span class="notification-badge">5</span>
-            </button>
-            <a class="user-profile" asp-controller="Doctor" asp-action="Profile" style="text-decoration: none;">
-                <img src="@ViewBag.Doctor.AvatarUrl" alt="Doctor" class="user-avatar">
-                <div class="user-info">
-                    <h6 id="">@ViewBag.Doctor.FullName</h6>
-                    <p>@ViewBag.Doctor.SpecialtyName</p>
-                </div>
-            </a>
-        </div>
-    </header>
+    <partial name="_Header" />
 
     <!-- Content -->
     <div class="content">

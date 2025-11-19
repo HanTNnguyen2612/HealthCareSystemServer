@@ -1,0 +1,48 @@
+﻿@using Microsoft.AspNetCore.Http
+
+@{
+    // 1. Lấy thông tin từ Session
+    var fullName = Context.Session.GetString("FullName") ?? "Guest";
+    var role = Context.Session.GetString("Role") ?? "Patient";
+    var avatar = Context.Session.GetString("AvatarUrl") ?? "/placeholder.svg?height=32&width=32";
+
+    // 2. Logic xác định đường dẫn Profile dựa trên Role
+    string profileUrl = "/User/Profile"; // Mặc định là Patient
+    string displayRole = "Patient";
+
+    if (role == "Doctor")
+    {
+        profileUrl = "/Doctor/Profile";
+        displayRole = "Doctor";
+    }
+}
+
+<header class="header">
+    <h1 class="header-title">@ViewData["Title"]</h1>
+
+    <div class="header-actions">
+        <button class="notification-btn">
+            <i class="fas fa-bell"></i>
+            <span class="notification-badge">3</span>
+        </button>
+
+        <div class="user-profile" onclick="window.location.href='@profileUrl'" style="cursor: pointer;">
+            <img src="@avatar" alt="User" class="user-avatar" id="headerAvatarImg">
+            <div class="user-info">
+                <h6 id="headerUserName">@fullName</h6>
+                <p>@displayRole</p>
+            </div>
+        </div>
+    </div>
+</header>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const avatarImg = document.getElementById('headerAvatarImg');
+        if(avatarImg) {
+            avatarImg.onerror = function() {
+                this.src = '/placeholder.svg?height=32&width=32'; // Ảnh fallback
+            };
+        }
+    });
+</script>

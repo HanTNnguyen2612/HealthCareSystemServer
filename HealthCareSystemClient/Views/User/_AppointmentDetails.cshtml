@@ -3,11 +3,11 @@
 <div class="appointment-details-modal">
     <div class="appointment-info-header">
         <div class="doctor-profile">
-            <img src="@(string.IsNullOrEmpty(Model.DoctorAvatarUrl) ? "/images/default-doctor.png" : Model.DoctorAvatarUrl)"
+            <img src="https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
                  alt="Doctor" class="doctor-avatar-large">
             <div class="doctor-details">
                 <h4>@Model.DoctorName</h4>
-                <p class="specialty">@Model.SpecialtyName</p>
+                <p class="specialty">Cardiology</p>
                 <div class="status-badge status-@Model.Status.ToLower()">
                     @Model.Status
                 </div>
