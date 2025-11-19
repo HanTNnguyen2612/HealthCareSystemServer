@@ -38,10 +38,8 @@
                     <i class="fas fa-users"></i>
                 </div>
                 <div class="stat-content">
-                    <h3 id="totalUsers">1,247</h3>
-                    <p>Total Users</p>
-                    <small class="text-success">+12% from last month</small>
-                </div>
+                    <h3 id="totalUsers">14</h3>
+                    <p>Total Users</p>                </div>
             </div>
 
             <div class="stat-card">
@@ -49,7 +47,7 @@
                     <i class="fas fa-calendar-check"></i>
                 </div>
                 <div class="stat-content">
-                    <h3 id="totalAppointments">3,456</h3>
+                    <h3 id="totalAppointments">10</h3>
                     <p>Total Appointments</p>
                     <small class="text-success">+8% from last month</small>
                 </div>
@@ -118,99 +116,9 @@
                 </div>
             </div>
         </div>
-
-        <!-- Revenue Chart -->
-        <div class="dashboard-card full-width-card">
-            <div class="card-header">
-                <h5 class="card-title">Revenue Overview</h5>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-sm btn-outline-primary" onclick="updateRevenueChart('daily')">Daily</button>
-                    <button class="btn btn-sm btn-primary" onclick="updateRevenueChart('monthly')">Monthly</button>
-                    <button class="btn btn-sm btn-outline-primary" onclick="updateRevenueChart('yearly')">Yearly</button>
-                </div>
-            </div>
-            <div class="card-content">
-                <canvas id="revenueChart" height="400"></canvas>
-            </div>
-        </div>
-
-        <!-- Recent Activities -->
-        <div class="dashboard-main-grid">
-            <div class="dashboard-card">
-                <div class="card-header">
-                    <h5 class="card-title">Recent User Activities</h5>
-                    <a href="admin-users.html" class="view-all-link">View All</a>
-                </div>
-                <div class="card-content">
-                    <div class="activity-list" id="recentActivities">
-                        <!-- Populated by JavaScript -->
-                    </div>
-                </div>
-            </div>
-
-            <div class="dashboard-card">
-                <div class="card-header">
-                    <h5 class="card-title">System Alerts</h5>
-                    <a href="admin-system.html" class="view-all-link">View All</a>
-                </div>
-                <div class="card-content">
-                    <div class="alerts-list" id="systemAlerts">
-                        <!-- Populated by JavaScript -->
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="dashboard-card full-width-card">
-            <div class="card-header">
-                <h5 class="card-title">Quick Actions</h5>
-            </div>
-            <div class="card-content">
-                <div class="quick-actions-grid">
-                    <a href="admin-users.html" class="quick-action-item">
-                        <div class="action-icon blue">
-                            <i class="fas fa-user-plus"></i>
-                        </div>
-                        <div class="action-content">
-                            <h6>Add New User</h6>
-                            <p>Create a new user account</p>
-                        </div>
-                    </a>
-
-                    <a href="admin-content.html" class="quick-action-item">
-                        <div class="action-icon green">
-                            <i class="fas fa-plus-circle"></i>
-                        </div>
-                        <div class="action-content">
-                            <h6>Create Article</h6>
-                            <p>Publish new health article</p>
-                        </div>
-                    </a>
-
-                    <a href="admin-system.html" class="quick-action-item">
-                        <div class="action-icon yellow">
-                            <i class="fas fa-calendar-alt"></i>
-                        </div>
-                        <div class="action-content">
-                            <h6>Manage Appointments</h6>
-                            <p>View and manage appointments</p>
-                        </div>
-                    </a>
-
-                    <a href="admin-reports.html" class="quick-action-item">
-                        <div class="action-icon cyan">
-                            <i class="fas fa-download"></i>
-                        </div>
-                        <div class="action-content">
-                            <h6>Export Reports</h6>
-                            <p>Generate system reports</p>
-                        </div>
-                    </a>
-                </div>
-            </div>
-        </div>
     </div>
+
+       
 </div>
 
 <script src="~/js/admin/admin-dashboard.js"></script>

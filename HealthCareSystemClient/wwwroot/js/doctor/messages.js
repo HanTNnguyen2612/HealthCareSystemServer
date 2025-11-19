@@ -146,13 +146,23 @@ function renderMessages(messages) {
 
 function addMessageToUI(msg) {
     const container = document.getElementById('chatMessages');
+    
+    // Kiểm tra duplicate dựa trên messageId
+    if (msg.messageId) {
+        const existingMessage = container.querySelector(`[data-message-id="${msg.messageId}"]`);
+        if (existingMessage) {
+            console.log('Message already exists, skipping duplicate:', msg.messageId);
+            return;
+        }
+    }
+    
     const isOwn = msg.senderId === CONFIG.userId;
     const content = msg.messageType === 'image'
-        ? `<img src="${msg.content}" style="max-width:200px; border-radius:8px;">`
+        ? `<img src="${msg.content}" class="message-image" style="max-width:200px; border-radius:8px; cursor:pointer;" onclick="openImageModal('${msg.content}')" alt="Uploaded image">`
         : `<div class="message-text">${escapeHtml(msg.content)}</div>`;
 
     const html = `
-        <div class="message ${isOwn ? 'user-message' : 'doctor-message'}">
+        <div class="message ${isOwn ? 'user-message' : 'doctor-message'}" data-message-id="${msg.messageId || ''}">
             <div class="message-content">${content}</div>
         </div>`;
 
@@ -378,5 +388,229 @@ function startNewConversation() { alert('Coming soon'); }
 function startVoiceCall() { alert('Voice call coming soon'); }
 function viewPatientProfile() { alert('Profile coming soon'); }
 function scheduleAppointment() { alert('Schedule coming soon'); }
-function attachFile() { alert('Upload coming soon'); }
-function openImageModal(url) { window.open(url, '_blank'); }
+
+function attachFile() {
+    if (!currentConversation) {
+        alert('Please select a conversation first.');
+        return;
+    }
+
+    try {
+        // Tạo input file ẩn
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/*';
+        fileInput.style.display = 'none';
+        
+        fileInput.addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // Kiểm tra kích thước file (max 10MB)
+            if (file.size > 10 * 1024 * 1024) {
+                showFileUploadModal('File size exceeds 10MB limit. Please choose a smaller file.');
+                return;
+            }
+            
+            // Kiểm tra loại file
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                showFileUploadModal('Invalid file type. Only image files (jpg, jpeg, png, gif, webp) are allowed.');
+                return;
+            }
+            
+            // Upload file
+            await uploadFileToCloudinary(file);
+        });
+        
+        document.body.appendChild(fileInput);
+        fileInput.click();
+        
+        // Cleanup
+        setTimeout(() => {
+            if (document.body.contains(fileInput)) {
+                document.body.removeChild(fileInput);
+            }
+        }, 1000);
+    } catch (error) {
+        console.error('Error in attachFile:', error);
+        showFileUploadModal('An error occurred. Please try again.');
+    }
+}
+
+async function uploadFileToCloudinary(file) {
+    if (!currentConversation || !CONFIG.userToken) {
+        showFileUploadModal('Unable to upload. Please check your connection.');
+        return;
+    }
+
+    try {
+        // Hiển thị loading
+        const loadingModal = showUploadProgress('Uploading image...');
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch(
+            `${CONFIG.apiBaseUrl}/api/conversations/${currentConversation.conversationId}/messages/upload-image`,
+            {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${CONFIG.userToken}`
+                },
+                body: formData
+            }
+        );
+
+        // Ẩn loading modal
+        const loadingModalEl = document.getElementById('fileUploadProgressModal');
+        if (loadingModalEl) {
+            const bsModal = bootstrap.Modal.getInstance(loadingModalEl);
+            if (bsModal) bsModal.hide();
+        }
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || 'Upload failed');
+        }
+
+        const result = await response.json();
+        
+        // Message sẽ được thêm tự động qua SignalR ReceiveMessage
+        // Không cần thêm thủ công để tránh duplicate
+
+    } catch (error) {
+        console.error('Upload error:', error);
+        showFileUploadModal('Failed to upload image: ' + error.message);
+    }
+}
+
+function showUploadProgress(message) {
+    let modal = document.getElementById('fileUploadProgressModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'fileUploadProgressModal';
+        modal.className = 'modal fade';
+        modal.innerHTML = `
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-body text-center py-4">
+                        <div class="spinner-border text-primary mb-3" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p id="uploadProgressMessage">${message}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    const messageEl = modal.querySelector('#uploadProgressMessage');
+    if (messageEl) {
+        messageEl.textContent = message;
+    }
+    
+    const bsModal = new bootstrap.Modal(modal, { backdrop: 'static', keyboard: false });
+    bsModal.show();
+    return bsModal;
+}
+
+function showFileUploadModal(message) {
+    // Tạo hoặc cập nhật modal
+    let modal = document.getElementById('fileUploadModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'fileUploadModal';
+        modal.className = 'modal fade';
+        modal.innerHTML = `
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">File Upload</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p id="fileUploadMessage"></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">OK</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    const messageEl = modal.querySelector('#fileUploadMessage');
+    if (messageEl) {
+        messageEl.textContent = message;
+    }
+    
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+}
+
+function openImageModal(url) {
+    // Tạo hoặc cập nhật modal xem ảnh
+    let modal = document.getElementById('imageViewModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'imageViewModal';
+        modal.className = 'modal fade';
+        modal.setAttribute('data-bs-backdrop', 'true');
+        modal.innerHTML = `
+            <div class="modal-dialog modal-dialog-centered" style="max-width: calc(100vw - 40px);">
+                <div class="modal-content bg-transparent border-0 shadow-none">
+                    <div class="modal-header border-0" style="position: absolute; top: 10px; right: 10px; z-index: 10;">
+                        <button type="button" class="btn-close btn-close-white bg-dark rounded-circle p-2" data-bs-dismiss="modal" aria-label="Close" style="opacity: 0.8;"></button>
+                    </div>
+                    <div class="modal-body p-0 d-flex justify-content-center align-items-center" style="background: transparent; position: relative;">
+                        <img id="fullSizeImage" src="" alt="Full size image" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.35); max-width: calc(100vw - 80px); max-height: calc(100vh - 120px); width: auto; height: auto; display: inline-block;">
+                        <button type="button" class="btn-close btn-close-white bg-dark rounded-circle p-2" data-bs-dismiss="modal" aria-label="Close" style="opacity: 0.9; position: absolute; top: 12px; right: max(12px, calc((100vw - 40px - var(--img-width, 0px)) / 2));"></button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Thêm style cho backdrop
+        const style = document.createElement('style');
+        style.textContent = `
+            #imageViewModal .modal-backdrop {
+                background-color: rgba(0, 0, 0, 0.75) !important;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    const img = modal.querySelector('#fullSizeImage');
+        if (img) {
+        img.onload = function () {
+            const maxWidth = window.innerWidth - 80;
+            const maxHeight = window.innerHeight - 120;
+            let width = img.naturalWidth;
+            let height = img.naturalHeight;
+            const widthRatio = maxWidth / width;
+            const heightRatio = maxHeight / height;
+            const ratio = Math.min(1, widthRatio, heightRatio);
+            img.style.width = (width * ratio) + 'px';
+            img.style.height = (height * ratio) + 'px';
+                const modalBody = img.closest('.modal-body');
+                if (modalBody) {
+                    modalBody.style.setProperty('--img-width', (width * ratio) + 'px');
+                }
+        };
+        img.src = url;
+        img.onerror = function() {
+            console.error('Failed to load image:', url);
+            alert('Failed to load image');
+        };
+    }
+    
+    const bsModal = new bootstrap.Modal(modal, {
+        backdrop: true,
+        keyboard: true
+    });
+    bsModal.show();
+}

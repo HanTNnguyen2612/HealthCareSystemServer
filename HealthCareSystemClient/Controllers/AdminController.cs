@@ -16,22 +16,5 @@ namespace HealthCareSystemClient.Controllers
             return View();
         }
 
-        public IActionResult Contents()
-        {
-            ViewData["ActiveMenu"] = "ContentManagement";
-            return View();
-        }
-
-        public IActionResult System()
-        {
-            ViewData["ActiveMenu"] = "SystemManagement";
-            return View();
-        }
-
-        public IActionResult Reports()
-        {
-            ViewData["ActiveMenu"] = "Reports";
-            return View();
-        }
     }
 }

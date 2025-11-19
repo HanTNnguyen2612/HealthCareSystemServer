@@ -25,9 +25,47 @@ namespace HealthCareSystemClient.Controllers
             _httpClientFactory = httpClientFactory;
             _logger = logger;
         }
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
             ViewData["ActiveMenu"] = "Dashboard";
+            ViewBag.ApiBaseUrl = "https://localhost:7293";
+            
+            var currentUserId = HttpContext.Session.GetInt32("UserId");
+            if (currentUserId == null)
+            {
+                return RedirectToAction("Index", "Login");
+            }
+
+            try
+            {
+                var client = _httpClientFactory.CreateClient("healthcaresystemapi");
+                
+                // Load appointments
+                var appointmentsResponse = await client.GetAsync($"api/Appointment/patient/{currentUserId}");
+                if (appointmentsResponse.IsSuccessStatusCode)
+                {
+                    var appointments = await appointmentsResponse.Content.ReadFromJsonAsync<List<AppointmentResponse>>();
+                    ViewBag.Appointments = appointments ?? new List<AppointmentResponse>();
+                }
+                else
+                {
+                    ViewBag.Appointments = new List<AppointmentResponse>();
+                }
+
+                // Load patient profile
+                var profileResponse = await client.GetAsync($"api/Patient/{currentUserId}");
+                if (profileResponse.IsSuccessStatusCode)
+                {
+                    var profile = await profileResponse.Content.ReadFromJsonAsync<PatientProfileDTO>();
+                    ViewBag.PatientProfile = profile;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading dashboard data");
+                ViewBag.Appointments = new List<AppointmentResponse>();
+            }
+
             return View();
         }
 
