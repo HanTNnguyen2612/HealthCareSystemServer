@@ -1,5 +1,6 @@
 ﻿using BusinessObjects.DataTransferObjects.DoctorDTOs;
 using BusinessObjects.DataTransferObjects.SpecialtyDTOs;
+using BusinessObjects.Domain;
 using DataAccessObjects.DAO;
 using Microsoft.AspNetCore.Mvc;
 using Services.Interface;
@@ -68,15 +69,15 @@ namespace HealthcareSystemAPI.Controllers
             {
                 var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (currentUserId != null && int.Parse(currentUserId) != userId)
-                {
+        {
                     // return Forbid();
                 }
 
-                var profile = await _doctorService.GetDoctorProfileAsync(userId);
+            var profile = await _doctorService.GetDoctorProfileAsync(userId);
                 if (profile == null) return NotFound("Doctor profile not found.");
 
-                return Ok(profile);
-            }
+            return Ok(profile);
+        }
             catch (Exception ex)
             {
                 Console.WriteLine(ex + "Error getting doctor profile {UserId}" + userId);
@@ -106,10 +107,19 @@ namespace HealthcareSystemAPI.Controllers
                 return Ok(new { message = "Doctor profile updated successfully" });
             }
             catch (Exception ex)
-            {
+        {
                 Console.WriteLine(ex + "Error updating doctor profile {UserId}" + dto.UserId);
                 return StatusCode(500, "Internal Server Error");
             }
+        }
+
+        [HttpGet("get-patient/{doctorUserId}")]
+        public async Task<IActionResult> GetPatientsByDoctorId(int doctorUserId)
+        {
+            var patientList = await _doctorService.GetPatientsByDoctorId(doctorUserId);
+            if (patientList == null)
+                return NotFound("Doctor not found.");
+            return Ok(patientList);
         }
     }
 }

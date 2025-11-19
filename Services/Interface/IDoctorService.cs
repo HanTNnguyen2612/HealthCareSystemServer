@@ -1,4 +1,5 @@
 ﻿using BusinessObjects.DataTransferObjects.DoctorDTOs;
+using BusinessObjects.DataTransferObjects.PatientDTOs;
 using BusinessObjects.Domain;
 using System;
 using System.Collections.Generic;
@@ -14,5 +15,6 @@ namespace Services.Interface
         Task<DoctorProfileDTO?> GetDoctorProfileAsync(int userId);
         Task<bool> UpdateDoctorProfileAsync(UpdateDoctorProfileDTO doctorDto);
         Task<List<Doctor>> GetBySpecialtyAsync(int specialtyId);
+        Task<IEnumerable<PatientProfileDTO>> GetPatientsByDoctorId(int doctorUserId);
     }
 }
