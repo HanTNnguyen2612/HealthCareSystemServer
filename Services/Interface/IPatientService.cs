@@ -11,5 +11,6 @@ namespace Services.Interface
     {
         Task<PatientProfileDTO?> GetPatientProfileAsync(int userId);
         Task<bool> UpdatePatientProfileAsync(PatientProfileDTO patientDto);
+        Task<bool> CreatePatientProfileAsync(CreatePatientDTO patientDto);
     }
 }

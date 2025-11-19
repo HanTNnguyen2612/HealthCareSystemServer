@@ -1,0 +1,208 @@
+﻿@model BusinessObjects.DataTransferObjects.AppointmentDTOs.ScheduleViewModel
+@{
+    Layout = "_LayoutDoctor";
+    ViewData["Title"] = "Schedule";
+}
+
+<!-- Main Content -->
+<div class="main-content">
+    <!-- Header -->
+    <header class="header">
+        <h1 class="header-title">Schedule Management</h1>
+        <div class="header-actions">
+            <button class="notification-btn">
+                <i class="fas fa-bell"></i>
+                <span class="notification-badge">5</span>
+            </button>
+            <a class="user-profile" asp-controller="Doctor" asp-action="Profile" style="text-decoration: none;">
+                <img src="@ViewBag.Doctor.AvatarUrl" alt="Doctor" class="user-avatar">
+                <div class="user-info">
+                    <h6 id="">@ViewBag.Doctor.FullName</h6>
+                    <p>@ViewBag.Doctor.SpecialtyName</p>
+                </div>
+            </a>
+        </div>
+    </header>
+
+    <!-- Content -->
+    <div class="content">
+        <!-- Schedule Overview -->
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h5 class="card-title">Weekly Schedule Overview</h5>
+                <div class="schedule-controls">
+                    <button class="btn btn-outline-secondary" onclick="previousWeek()">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <span id="currentWeek">@Model.CurrentWeekDisplay</span>
+                    <button class="btn btn-outline-secondary" onclick="nextWeek()">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-content">
+                <div class="schedule-grid" id="scheduleGrid">
+                    @{
+                        var days = new[] { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" };
+                        var timeSlots = new[] { "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30" };
+                    }
+
+                    <!-- Header row -->
+                    <div class="schedule-grid-header">
+                        <div class="schedule-time-header">Time</div>
+                        @foreach (var day in days)
+                        {
+                            <div class="schedule-day-header">@day</div>
+                        }
+                    </div>
+
+                    <!-- Time slot rows -->
+                    @foreach (var time in timeSlots)
+                    {
+                        <div class="schedule-grid-row">
+                            <div class="schedule-time-slot">@time</div>
+                            @foreach (var day in days)
+                            {
+                                var daySchedule = Model.WeeklySchedule.FirstOrDefault(d => d.DayName == day);
+                                var appointment = daySchedule?.Appointments.FirstOrDefault(a => a.TimeDisplay == time);
+                                var availableSlot = daySchedule?.AvailableSlots.FirstOrDefault(s => s.TimeDisplay.StartsWith(time));
+
+                                var cellClass = "schedule-cell";
+                                string cellContent = "";
+
+                                if (appointment != null)
+                                {
+                                    cellClass += " has-appointment";
+                                    cellContent = $@"
+                                                <div class='appointment-block'>
+                                                <div class='appointment-patient'>{appointment.PatientName}</div>
+                                                <div class='appointment-type'>{appointment.AppointmentType}</div>
+                                                <span class='badge badge-{appointment.StatusColor}'>{appointment.Status}</span>
+                                                </div>";
+                                }
+                                else if (availableSlot?.IsAvailable == true)
+                                {
+                                    cellClass += " available";
+                                    cellContent = $@"<div class='available-slot'>Available</div>";
+                                }
+                                else
+                                {
+                                    cellClass += " unavailable";
+                                    cellContent = "<div class='unavailable-slot'>Unavailable</div>";
+                                }
+
+                                <div class="@cellClass">@Html.Raw(cellContent)</div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Time Off Management -->
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h5 class="card-title">Time Off & Holidays</h5>
+                <button class="btn btn-outline-primary" onclick="addTimeOff()" type="button">
+                    <i class="fas fa-plus"></i>
+                    Add Time Off
+                </button>
+            </div>
+            <div class="card-content">
+                <div class="time-off-list" id="timeOffList">
+                    @if (Model.TimeOffList.Any())
+                    {
+                        @foreach (var timeOff in Model.TimeOffList)
+                        {
+                            <div class="time-off-item">
+                                <div class="time-off-info">
+                                    <div class="time-off-icon @timeOff.Type">
+                                        <i class="fas fa-@timeOff.Icon"></i>
+                                    </div>
+                                    <div class="time-off-details">
+                                        <h6>@timeOff.Title</h6>
+                                        <p>@timeOff.DateRangeDisplay</p>
+                                        <small>@timeOff.Reason</small>
+                                    </div>
+                                </div>
+                                <div class="time-off-actions">
+                                    <button class="btn btn-sm btn-outline-secondary" onclick="editTimeOff(@timeOff.TimeOffId)" type="button">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteTimeOff(@timeOff.TimeOffId)" type="button">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="no-time-off">
+                            <p class="text-muted">No time off scheduled</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Time Off Modal -->
+<div class="modal fade" id="addTimeOffModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Time Off</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addTimeOffForm">
+                    <input type="hidden" id="timeOffId" name="timeOffId" value="0">
+                    <div class="mb-3">
+                        <label for="timeOffType" class="form-label">Type</label>
+                        <select class="form-control" id="timeOffType" name="timeOffType" required>
+                            <option value="vacation">Vacation</option>
+                            <option value="sick">Sick Leave</option>
+                            <option value="conference">Conference/Training</option>
+                            <option value="personal">Personal Time</option>
+                            <option value="holiday">Holiday</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="timeOffTitle" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="timeOffTitle" name="timeOffTitle" required placeholder="Enter title for time off">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="startDate" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="startDate" name="startDate" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="endDate" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="endDate" name="endDate" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="allDay" name="allDay" checked>
+                            <label class="form-check-label" for="allDay">
+                                All Day
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="timeOffReason" class="form-label">Reason/Notes</label>
+                        <textarea class="form-control" id="timeOffReason" name="timeOffReason" rows="3" placeholder="Reason for time off or additional notes"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeTimeOffModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveTimeOff()" id="saveTimeOffBtn">Add Time Off</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/js/doctor/schedule.js"></script>

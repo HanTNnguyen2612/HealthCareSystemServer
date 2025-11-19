@@ -1,0 +1,16 @@
+@using BusinessObjects.DataTransferObjects.AppointmentDTOs
+@model List<DoctorViewModel>
+
+@if (Model != null && Model.Any())
+{
+    <option value="">Choose a doctor</option>
+    @foreach (var doctor in Model)
+    {
+        <option value="@doctor.UserId">@doctor.FullName - @doctor.SpecialtyName</option>
+    }
+}
+else
+{
+    <option value="">No doctors available for this specialty</option>
+}
+

@@ -1,0 +1,344 @@
+﻿@using BusinessObjects.DataTransferObjects.AppointmentDTOs
+@model BusinessObjects.DataTransferObjects.AppointmentDTOs.BookAppointmentViewModel
+@{
+    Layout = "_LayoutUser";
+    ViewData["Title"] = "Appointment Calendar";
+    var currentDate = ViewBag.CurrentDate as DateTime? ?? DateTime.Now;
+    var startOfMonth = new DateTime(currentDate.Year, currentDate.Month, 1);
+    var startDate = startOfMonth.AddDays(-(int)startOfMonth.DayOfWeek);
+    var monthAppointments = ViewBag.MonthAppointments as List<AppointmentViewModel> ?? new List<AppointmentViewModel>();
+}
+<!-- Main Content -->
+<div class="main-content">
+    <!-- Header -->
+    <header class="header">
+        <h1 class="header-title">Appointment Calendar</h1>
+        @*<div class="search-container">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" class="search-input" placeholder="Search appointments..." id="searchInput">
+        </div>*@
+        <div class="header-actions">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#bookAppointmentModal">
+                <i class="fas fa-plus"></i>
+                Book Appointment
+            </button>
+            <button class="notification-btn">
+                <i class="fas fa-bell"></i>
+                <span class="notification-badge">3</span>
+            </button>
+            <a asp-action="Profile" asp-controller="User" style="text-decoration: none;">
+                <div class="user-profile">
+                    <img src="@(ViewBag.CurrentUser?.AvatarUrl ?? "/images/default-user.png")" alt="User" class="user-avatar">
+                    <div class="user-info">
+                        <h6 id="userName">@(ViewBag.CurrentUser?.FullName ?? "User")</h6>
+                        <p>Patient</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </header>
+
+    <!-- Content -->
+    <div class="content">
+        <!-- Calendar Controls -->
+        <div class="calendar-controls">
+            <div class="calendar-view-options">
+                <button class="btn btn-outline-primary active" onclick="setCalendarView('month')">Month</button>
+                <button class="btn btn-outline-primary" onclick="setCalendarView('week')">Week</button>
+                <button class="btn btn-outline-primary" onclick="setCalendarView('day')">Day</button>
+            </div>
+            <div class="calendar-navigation">
+                <button class="btn btn-outline-secondary" onclick="previousPeriod()">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <h4 id="calendarTitle">
+                    @currentDate.ToString("MMMM yyyy")
+                </h4>
+                <button class="btn btn-outline-secondary" onclick="nextPeriod()">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            <button class="btn btn-outline-primary" onclick="goToToday()">Today</button>
+        </div>
+
+        <!-- Calendar -->
+        <div class="dashboard-card full-width-card">
+            <div class="card-content calendar-content">
+                <div class="calendar-grid" id="calendarGrid">
+                    <!-- Calendar Header -->
+                    <div class="calendar-day-header">Sun</div>
+                    <div class="calendar-day-header">Mon</div>
+                    <div class="calendar-day-header">Tue</div>
+                    <div class="calendar-day-header">Wed</div>
+                    <div class="calendar-day-header">Thu</div>
+                    <div class="calendar-day-header">Fri</div>
+                    <div class="calendar-day-header">Sat</div>
+
+                    <!-- Calendar Days -->
+                    @for (int i = 0; i < 42; i++)
+                    {
+                        var day = startDate.AddDays(i);
+                        var isCurrentMonth = day.Month == currentDate.Month;
+                        var isToday = day.Date == DateTime.Today;
+                        var dayAppointments = monthAppointments.Where(a => a.AppointmentDateTime.Date == day.Date).ToList();
+
+                        <div class="calendar-day @(isCurrentMonth ? "current-month" : "other-month") @(isToday ? "today" : "")">
+                            <div class="day-number">@day.Day</div>
+                            @if (dayAppointments.Any())
+                            {
+                                <div class="day-appointments">
+                                    @foreach (var appointment in dayAppointments.Take(2))
+                                    {
+                                        <div class="appointment-indicator" title="@appointment.AppointmentDateTime.ToString("HH:mm") - @appointment.DoctorName">
+                                            <span class="appointment-time">@appointment.AppointmentDateTime.ToString("HH:mm")</span>
+                                            <span class="appointment-doctor">@appointment.DoctorName.Split(' ').LastOrDefault()</span>
+                                        </div>
+                                    }
+                                    @if (dayAppointments.Count > 2)
+                                    {
+                                        <div class="more-appointments">+@(dayAppointments.Count - 2) more</div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Upcoming Appointments Sidebar -->
+        <div class="calendar-sidebar">
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h5 class="card-title">Today's Schedule</h5>
+                </div>
+                <div class="card-content">
+                    <div class="today-appointments">
+                        @{
+                            var todayAppointments = ViewBag.TodayAppointments as List<AppointmentViewModel>;
+                        }
+                        @if (todayAppointments != null && todayAppointments.Any())
+                        {
+                            @foreach (var appointment in todayAppointments)
+                            {
+                                <div class="appointment-item-sidebar">
+                                    <div class="appointment-time-sidebar">
+                                        @appointment.AppointmentDateTime.ToString("HH:mm")
+                                    </div>
+                                    <div class="appointment-info-sidebar">
+                                        <h6>@appointment.DoctorName</h6>
+                                        <p>@appointment.SpecialtyName</p>
+                                        @if (!string.IsNullOrEmpty(appointment.Notes))
+                                        {
+                                            <small class="text-muted">@appointment.Notes</small>
+                                        }
+                                    </div>
+                                    <div class="appointment-status-sidebar">
+                                        <span class="status-dot status-@appointment.Status.ToLower()"></span>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="no-appointments-sidebar">
+                                <p>No appointments today</p>
+                                <small class="text-muted">Relax and rest!</small>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h5 class="card-title">This Week</h5>
+                </div>
+                <div class="card-content">
+                    <div class="week-appointments">
+                        @{
+                            var weekAppointments = ViewBag.WeekAppointments as List<AppointmentViewModel>;
+                        }
+                        @if (weekAppointments != null && weekAppointments.Any())
+                        {
+                            @foreach (var appointment in weekAppointments)
+                            {
+                                <div class="week-appointment-item">
+                                    <div class="week-day">
+                                        @appointment.AppointmentDateTime.ToString("ddd")
+                                        <span class="week-date">@appointment.AppointmentDateTime.Day</span>
+                                    </div>
+                                    <div class="week-appointment-details">
+                                        <div class="week-time">@appointment.AppointmentDateTime.ToString("HH:mm")</div>
+                                        <div class="week-doctor">@appointment.DoctorName</div>
+                                        <div class="week-specialty">@appointment.SpecialtyName</div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="no-appointments-sidebar">
+                                <p>No appointments this week</p>
+                                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#bookAppointmentModal">
+                                    Book Now
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Book Appointment Modal -->
+<div class="modal fade" id="bookAppointmentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Book New Appointment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                @using (Html.BeginForm("BookAppointment", "User", FormMethod.Post, new { id = "bookAppointmentForm" }))
+                {
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="SpecialtyId" class="form-label">Specialty</label>
+                            @Html.DropDownListFor(m => m.SpecialtyId,
+                            new SelectList(Model.Specialties, "SpecialtyId", "Name"),
+                                                "Choose specialty",
+                                                new { @class = "form-control", id = "specialty", required = "required" })
+                        @Html.ValidationMessageFor(m => m.SpecialtyId, "", new { @class = "text-danger" })
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="DoctorUserId" class="form-label">Doctor</label>
+                        @Html.DropDownListFor(m => m.DoctorUserId,
+                                                new SelectList(Enumerable.Empty<SelectListItem>(), "Value", "Text"),
+                                                "Choose specialty first",
+                                                new { @class = "form-control", id = "doctor", required = "required" })
+                        @Html.ValidationMessageFor(m => m.DoctorUserId, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="AppointmentDate" class="form-label">Appointment Date</label>
+                        @Html.EditorFor(m => m.AppointmentDate, new { htmlAttributes = new { @class = "form-control", id = "appointmentDate", type = "date", required = "required", min = DateTime.Now.ToString("yyyy-MM-dd") } })
+                        @Html.ValidationMessageFor(m => m.AppointmentDate, "", new { @class = "text-danger" })
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="AppointmentTime" class="form-label">Appointment Time</label>
+                        @Html.DropDownListFor(m => m.AppointmentTime,
+                                                new SelectList(Enumerable.Empty<SelectListItem>(), "Value", "Text"),
+                                                "Choose date first",
+                                                new { @class = "form-control", id = "appointmentTime", required = "required" })
+                        @Html.ValidationMessageFor(m => m.AppointmentTime, "", new { @class = "text-danger" })
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="Notes" class="form-label">Reason for Visit</label>
+                    @Html.TextAreaFor(m => m.Notes, new { @class = "form-control", id = "reason", rows = "3", placeholder = "Describe symptoms or reason for visit" })
+                    @Html.ValidationMessageFor(m => m.Notes, "", new { @class = "text-danger" })
+                </div>
+                <div class="mb-3">
+                    <label for="AppointmentType" class="form-label">Appointment Type</label>
+                    @Html.DropDownListFor(m => m.AppointmentType,
+                                        new List<SelectListItem>
+                                        {
+                                        new SelectListItem { Text = "In-person Visit", Value = "in-person" },
+                                        new SelectListItem { Text = "Video Consultation", Value = "video" },
+                                        new SelectListItem { Text = "Phone Consultation", Value = "phone" }
+                                        },
+                                        "Choose appointment type",
+                                        new { @class = "form-control", id = "appointmentType", required = "required" })
+                    @Html.ValidationMessageFor(m => m.AppointmentType, "", new { @class = "text-danger" })
+                </div>
+                                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="bookAppointmentForm" class="btn btn-primary">Book Appointment</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const specialtySelect = document.getElementById('specialty');
+        const doctorSelect = document.getElementById('doctor');
+        const dateInput = document.getElementById('appointmentDate');
+        const timeSelect = document.getElementById('appointmentTime');
+
+        // When specialty changes, load doctors
+        specialtySelect.addEventListener('change', function() {
+            const specialtyId = this.value;
+            if (specialtyId) {
+                fetch(`/User/GetDoctorsBySpecialty?specialtyId=${specialtyId}`)
+                    .then(response => response.text())
+                    .then(html => {
+                        doctorSelect.innerHTML = html;
+                        timeSelect.innerHTML = '<option value="">Choose doctor and date first</option>';
+                    })
+                    .catch(error => {
+                        console.error('Error loading doctors:', error);
+                        doctorSelect.innerHTML = '<option value="">Error loading doctors</option>';
+                    });
+            } else {
+                doctorSelect.innerHTML = '<option value="">Choose specialty first</option>';
+                timeSelect.innerHTML = '<option value="">Choose doctor and date first</option>';
+            }
+        });
+
+        // When doctor or date changes, load available time slots
+        function loadTimeSlots() {
+            const doctorId = doctorSelect.value;
+            const date = dateInput.value;
+
+            if (doctorId && date) {
+                fetch(`/User/GetAvailableTimeSlots?doctorId=${doctorId}&date=${date}`)
+                    .then(response => response.text())
+                    .then(html => {
+                        timeSelect.innerHTML = html;
+                    })
+                    .catch(error => {
+                        console.error('Error loading time slots:', error);
+                        timeSelect.innerHTML = '<option value="">Error loading time slots</option>';
+                    });
+            } else {
+                timeSelect.innerHTML = '<option value="">Choose doctor and date first</option>';
+            }
+        }
+
+        doctorSelect.addEventListener('change', loadTimeSlots);
+        dateInput.addEventListener('change', loadTimeSlots);
+    });
+
+    // Calendar navigation functions (simplified - just for demo)
+    function previousPeriod() {
+        // In a real implementation, you'd reload the page with previous month parameter
+        alert('Calendar navigation feature will be updated');
+    }
+
+    function nextPeriod() {
+        // In a real implementation, you'd reload the page with next month parameter
+        alert('Calendar navigation feature will be updated');
+    }
+
+    function goToToday() {
+        // In a real implementation, you'd reload the page with current month
+        window.location.reload();
+    }
+
+    function setCalendarView(view) {
+        // Update view buttons
+        document.querySelectorAll('.calendar-view-options .btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+
+        // In a real implementation, you'd change the calendar view
+        alert('View mode ' + view + ' will be updated');
+    }
+</script>

@@ -1,0 +1,163 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+    Layout = "_LayoutUser";
+    ViewData["Title"] = "Messages";
+}
+
+<div class="main-content">
+    <header class="header">
+        <h1 class="header-title">Messages</h1>
+        <div class="search-container">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" class="search-input" placeholder="Search conversations..." id="searchInput">
+        </div>
+        <div class="header-actions">
+            <button class="notification-btn">
+                <i class="fas fa-bell"></i>
+                <span class="notification-badge">3</span>
+            </button>
+            <div class="user-profile" onclick="window.location.href='profile.html'">
+                <img src="/placeholder.svg?height=32&width=32" alt="User" class="user-avatar">
+                <div class="user-info">
+                    <h6 id="headerUserName">Loading...</h6>
+                    <p>Patient</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="content">
+        <div class="messages-layout">
+            <div class="dashboard-card conversations-panel">
+                <div class="card-header">
+                    <h5 class="card-title">Conversations</h5>
+                    <button class="btn btn-sm btn-primary" onclick="startNewConversation()">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                <div class="conversations-list" id="conversationsList">
+                    <div class="text-center p-3 text-muted">Loading conversations...</div>
+                </div>
+            </div>
+
+            <div class="dashboard-card chat-panel">
+                <div class="chat-container" id="chatContainer">
+
+                    <div class="chat-header" id="chatHeader" style="display: none;">
+                        <div class="chat-doctor-info">
+                            <img src="/placeholder.svg?height=48&width=48" alt="Doctor" class="chat-avatar" id="chatAvatar">
+                            <div class="chat-doctor-details">
+                                <h6 id="chatDoctorName">Doctor Name</h6>
+                                <p id="chatDoctorSpecialty">Specialist</p>
+                            </div>
+                        </div>
+                        <div class="chat-actions">
+                            <button class="chat-action-btn" onclick="startVideoCall()" title="Video Call">
+                                <i class="fas fa-video"></i>
+                            </button>
+                            <button class="chat-action-btn" onclick="startVoiceCall()" title="Voice Call">
+                                <i class="fas fa-phone"></i>
+                            </button>
+                            <button class="chat-action-btn" onclick="viewDoctorProfile()" title="View Profile">
+                                <i class="fas fa-info-circle"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="empty-chat">
+                            <div class="empty-chat-icon">
+                                <i class="fas fa-comments"></i>
+                            </div>
+                            <h5>Select a conversation</h5>
+                            <p>Choose a doctor from the list to start messaging</p>
+                        </div>
+                    </div>
+
+                    <div class="chat-input-container" id="chatInputContainer" style="display: none;">
+                        <form class="chat-input-form" onsubmit="sendMessage(event)">
+                            <div class="chat-input-wrapper">
+                                <input type="text" class="chat-input" id="messageInput" placeholder="Type your message...">
+                                <button type="button" class="attachment-btn" onclick="attachFile()">
+                                    <i class="fas fa-paperclip"></i>
+                                </button>
+                            </div>
+                            <button type="submit" class="send-btn">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="videoCallModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content" style="background-color: #202124; border-radius: 15px; overflow: hidden; color: white;">
+
+            <div class="modal-header border-0 py-2" style="background: rgba(0,0,0,0.3); position: absolute; top: 0; width: 100%; z-index: 10;">
+                <h6 class="modal-title">
+                    <i class="fas fa-video text-danger me-2"></i>
+                    Call with <span id="videoCallPartnerName" class="fw-bold">Doctor</span>
+                </h6>
+            </div>
+
+            <div class="modal-body p-0 position-relative" style="height: 70vh; background: black;">
+
+                <div id="video-loading" class="d-flex flex-column justify-content-center align-items-center h-100 w-100 position-absolute" style="z-index: 5; background: #202124;">
+                    <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+                    <h5 id="connectionStatus">Connecting...</h5>
+                    <p class="text-muted small">Waiting for answer...</p>
+                </div>
+
+                <div id="remote-video" style="width: 100%; height: 100%; background-color: #000; position: absolute; top: 0; left: 0; z-index: 1;"></div>
+
+                <div id="local-video" style="position: absolute; bottom: 20px; right: 20px; width: 200px; height: 150px; background: #333; border: 2px solid #fff; border-radius: 10px; overflow: hidden; z-index: 10; box-shadow: 0 4px 15px rgba(0,0,0,0.5);"></div>
+
+                <div class="position-absolute bottom-0 start-50 translate-middle-x mb-4 d-flex gap-3" style="z-index: 20;">
+                    <button class="btn btn-light rounded-circle p-3 shadow" onclick="toggleMute()" id="btnMute" title="Mute/Unmute">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <button class="btn btn-light rounded-circle p-3 shadow" onclick="toggleVideo()" id="btnVideo" title="Camera On/Off">
+                        <i class="fas fa-video"></i>
+                    </button>
+                    <button class="btn btn-danger rounded-circle p-3 shadow px-4" onclick="endCall()" title="End Call">
+                        <i class="fas fa-phone-slash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script src="~/microsoft/signalr/dist/browser/signalr.min.js"></script>
+
+<script src="https://sdk.twilio.com/js/video/releases/2.27.0/twilio-video.min.js"></script>
+
+<script>
+    window.AppConfig = {
+        apiBaseUrl: '@(ViewBag.ApiBaseUrl ?? "https://localhost:7293")', // Check đúng Port API
+        userId: @(Context.Session.GetInt32("UserId") ?? 0),
+        userToken: @Html.Raw(Json.Serialize(Context.Session.GetString("AccessToken") ?? "")),
+        userEmail: @Html.Raw(Json.Serialize(Context.Session.GetString("Email") ?? "Guest"))
+    };
+
+    console.log('AppConfig initialized:', window.AppConfig);
+</script>
+
+<script src="~/js/user/messages.js?v=@DateTime.Now.Ticks"></script>
+
+<script>
+    // Hiển thị tên người dùng lên Header ngay khi tải trang
+    document.addEventListener("DOMContentLoaded", function() {
+        const nameEl = document.getElementById("headerUserName");
+        if(nameEl && window.AppConfig.userEmail) {
+            nameEl.innerText = window.AppConfig.userEmail;
+        }
+    });
+</script>

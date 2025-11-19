@@ -1,0 +1,488 @@
+﻿﻿ /* Doctor Appointments Styles */
+.doctor-actions {
+    display: flex;
+    gap: 10px; /* Khoảng cách giữa hai nút */
+}
+
+.doctor-actions .btn {
+    flex: 1; /* Giúp các nút có cùng kích thước */
+}
+
+.appointment-item-detailed {
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 15px;
+    background: white;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+    .appointment-item-detailed:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transform: translateY(-2px);
+    }
+
+.appointment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.patient-info h6 {
+    margin: 0;
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 1.1em;
+}
+
+.appointment-type {
+    margin: 5px 0 0 0;
+    color: #7f8c8d;
+    font-size: 0.9em;
+    font-style: italic;
+}
+
+.appointment-time {
+    text-align: right;
+    color: #34495e;
+    font-weight: 500;
+}
+
+    .appointment-time i {
+        margin-right: 8px;
+        color: #3498db;
+    }
+
+.appointment-details {
+    margin-bottom: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #ecf0f1;
+}
+
+    .appointment-details p {
+        margin: 8px 0;
+        font-size: 0.9em;
+        color: #5d6d7e;
+    }
+
+    .appointment-details strong {
+        color: #2c3e50;
+    }
+
+.appointment-actions {
+    border-top: 1px solid #ecf0f1;
+    padding-top: 15px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+    .appointment-actions .btn {
+        font-size: 0.85em;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+
+        .appointment-actions .btn:hover {
+            transform: translateY(-1px);
+        }
+
+.no-appointments {
+    text-align: center;
+    padding: 60px 20px;
+    color: #95a5a6;
+}
+
+    .no-appointments i {
+        font-size: 4em;
+        margin-bottom: 20px;
+        color: #bdc3c7;
+    }
+
+    .no-appointments p {
+        font-size: 1.1em;
+        margin: 0;
+    }
+
+/* Tab styles */
+.nav-tabs {
+    border-bottom: 2px solid #ecf0f1;
+    margin-bottom: 30px;
+}
+
+    .nav-tabs .nav-link {
+        border: none;
+        color: #7f8c8d;
+        font-weight: 500;
+        padding: 12px 20px;
+        margin-right: 5px;
+        border-radius: 8px 8px 0 0;
+        transition: all 0.3s ease;
+    }
+
+        .nav-tabs .nav-link:hover {
+            border-color: transparent;
+            color: #2c3e50;
+            background-color: #f8f9fa;
+        }
+
+        .nav-tabs .nav-link.active {
+            color: #2c3e50;
+            background-color: white;
+            border-color: #ecf0f1 #ecf0f1 white;
+            border-width: 2px 2px 2px 2px;
+            font-weight: 600;
+        }
+
+    .nav-tabs .badge {
+        font-size: 0.7em;
+        padding: 4px 8px;
+    }
+
+/* Status badges */
+.badge {
+    font-size: 0.75em;
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.bg-warning {
+    background-color: #f39c12 !important;
+}
+
+.bg-success {
+    background-color: #27ae60 !important;
+}
+
+.bg-primary {
+    background-color: #3498db !important;
+}
+
+.bg-danger {
+    background-color: #e74c3c !important;
+}
+
+.bg-info {
+    background-color: #17a2b8 !important;
+}
+
+/* Modal styles */
+.modal-content {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.modal-header {
+    border-bottom: 1px solid #ecf0f1;
+    padding: 20px 24px 16px;
+}
+
+.modal-body {
+    padding: 20px 24px;
+}
+
+.modal-footer {
+    border-top: 1px solid #ecf0f1;
+    padding: 16px 24px 20px;
+}
+
+/* Alert notifications */
+.alert {
+    border-radius: 8px;
+    border: none;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.alert-info {
+    background-color: #cce7ff;
+    color: #004085;
+}
+
+.notification-toast {
+    box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+    border-radius: 8px;
+    border: none;
+}
+
+/* Button styles */
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+    .btn:hover {
+        transform: translateY(-1px);
+    }
+
+.btn-success {
+    background-color: #27ae60;
+    border-color: #27ae60;
+}
+
+    .btn-success:hover {
+        background-color: #229954;
+        border-color: #229954;
+    }
+
+.btn-danger {
+    background-color: #e74c3c;
+    border-color: #e74c3c;
+}
+
+    .btn-danger:hover {
+        background-color: #dc3545;
+        border-color: #dc3545;
+    }
+
+.btn-info {
+    background-color: #17a2b8;
+    border-color: #17a2b8;
+}
+
+    .btn-info:hover {
+        background-color: #138496;
+        border-color: #138496;
+    }
+
+.btn-primary {
+    background-color: #3498db;
+    border-color: #3498db;
+}
+
+    .btn-primary:hover {
+        background-color: #2980b9;
+        border-color: #2980b9;
+    }
+
+/* Dashboard card styles */
+.dashboard-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+    transition: box-shadow 0.3s ease;
+}
+
+    .dashboard-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+.card-header {
+    border-bottom: 1px solid #ecf0f1;
+    padding: 20px 24px 16px;
+    background-color: transparent;
+}
+
+.card-title {
+    margin: 0;
+    font-size: 1.2em;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.card-content {
+    padding: 20px 24px;
+}
+
+/* Header styles */
+.header {
+    background: white;
+    border-bottom: 1px solid #ecf0f1;
+    padding: 16px 24px;
+    margin-bottom: 30px;
+    border-radius: 0 0 12px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.header-title {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.8em;
+    font-weight: 600;
+    order: 1;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    order: 3;
+}
+
+.notification-btn {
+    position: relative;
+    background: none;
+    border: none;
+    padding: 10px;
+    border-radius: 50%;
+    color: #7f8c8d;
+    transition: all 0.2s ease;
+}
+
+    .notification-btn:hover {
+        background-color: #f8f9fa;
+        color: #2c3e50;
+    }
+
+.notification-badge {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background-color: #e74c3c;
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 0.7em;
+    min-width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+    .user-profile:hover {
+        background-color: #f8f9fa;
+    }
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.user-info h6 {
+    margin: 0;
+    font-size: 0.9em;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.user-info p {
+    margin: 0;
+    font-size: 0.8em;
+    color: #7f8c8d;
+}
+
+/* Search container */
+.search-container {
+    position: relative;
+    flex: 1;
+    max-width: 400px;
+    order: 2;
+}
+
+.search-input-left {
+    width: 100%;
+    padding: 10px 16px 10px 40px; /* chừa khoảng bên trái cho icon */
+    border: 1px solid #ddd;
+    border-radius: 25px;
+    font-size: 0.9em;
+    transition: all 0.3s ease;
+}
+
+    .search-input-left:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    }
+
+.search-icon-left {
+    position: absolute;
+    left: 15px; /* icon nằm bên trái */
+    top: 50%;
+    transform: translateY(-50%);
+    color: #7f8c8d;
+    pointer-events: none; /* tránh cản nhập chuột */
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .appointment-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .appointment-time {
+        text-align: left;
+    }
+
+    .appointment-actions {
+        flex-direction: column;
+    }
+
+        .appointment-actions .btn {
+            width: 100%;
+        }
+
+    .header {
+        padding: 12px 16px;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .header-title {
+        font-size: 1.5em;
+        order: 1;
+        margin-bottom: 15px;
+    }
+
+    .search-container {
+        order: 2;
+        max-width: none;
+        margin-bottom: 15px;
+    }
+
+    .header-actions {
+        order: 3;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .appointment-item-detailed {
+        padding: 16px;
+    }
+
+    .card-content {
+        padding: 16px;
+    }
+
+    .nav-tabs .nav-link {
+        padding: 10px 12px;
+        font-size: 0.9em;
+    }
+}

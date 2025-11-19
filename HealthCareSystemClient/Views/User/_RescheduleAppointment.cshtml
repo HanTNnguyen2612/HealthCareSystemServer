@@ -1,0 +1,37 @@
+﻿@model BusinessObjects.DataTransferObjects.AppointmentDTOs.BookAppointmentViewModel
+
+<form id="rescheduleForm" asp-action="RescheduleAppointment" asp-route-id="@ViewBag.AppointmentId" method="post">
+    <div class="current-appointment-info mb-3">
+        <h6>Current Appointment</h6>
+        <p><strong>Doctor:</strong> @ViewBag.DoctorName</p>
+        <p><strong>Specialty:</strong> @ViewBag.SpecialtyName</p>
+        <p><strong>Current Date:</strong> @Model.AppointmentDate.ToString("dd/MM/yyyy")</p>
+        <p><strong>Current Time:</strong> @($"{Model.AppointmentTime.Hours:00}:{Model.AppointmentTime.Minutes:00}")</p>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label for="rescheduleDate" class="form-label">New Date</label>
+            @Html.EditorFor(m => m.AppointmentDate, new { htmlAttributes = new { @class = "form-control", id = "rescheduleDate", type = "date", required = "required", min = DateTime.Now.ToString("yyyy-MM-dd") } })
+        </div>
+        <div class="col-md-6 mb-3">
+            <label for="rescheduleTime" class="form-label">New Time</label>
+            @Html.DropDownListFor(m => m.AppointmentTime,
+            new SelectList(Enumerable.Empty<SelectListItem>(), "Value", "Text"),
+                        "Choose date first",
+                        new { @class = "form-control", id = "rescheduleTime", required = "required" })
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label for="rescheduleNotes" class="form-label">Reason for Visit</label>
+        @Html.TextAreaFor(m => m.Notes, new { @class = "form-control", id = "rescheduleNotes", rows = "3" })
+    </div>
+
+    @Html.HiddenFor(m => m.DoctorUserId)
+    <input type="hidden" name="SpecialtyId" value="@ViewBag.SpecialtyId" />
+
+    <!-- Hidden fields for JavaScript access -->
+    <input type="hidden" id="hiddenDoctorId" value="@Model.DoctorUserId" />
+    <input type="hidden" id="hiddenAppointmentId" value="@ViewBag.AppointmentId" />
+</form>

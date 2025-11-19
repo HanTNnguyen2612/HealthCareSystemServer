@@ -1,0 +1,230 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+    Layout = "_LayoutUser";
+    ViewData["Title"] = "Health Dashboard";
+}
+<!-- Main Content -->
+<div class="main-content">
+    <!-- Header -->
+    <header class="header">
+        <h1 class="header-title">Health Dashboard</h1>
+        <div class="search-container">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" class="search-input" placeholder="Search appointments, doctors..." id="searchInput">
+        </div>
+        <div class="header-actions">
+            <button class="notification-btn">
+                <i class="fas fa-bell"></i>
+                <span class="notification-badge">3</span>
+            </button>
+            <div class="user-profile" onclick="window.location.href='profile.html'">
+                <img src="/placeholder.svg?height=32&width=32" alt="User" class="user-avatar">
+                <div class="user-info">
+                    <h6 id="userName">John Doe</h6>
+                    <p>Patient</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Content -->
+    <div class="content">
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon blue">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>3</h3>
+                    <p>Upcoming Appointments</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon green">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>12</h3>
+                    <p>Completed Visits</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon cyan">
+                    <i class="fas fa-envelope"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>2</h3>
+                    <p>Unread Messages</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon yellow">
+                    <i class="fas fa-heart"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>85%</h3>
+                    <p>Health Score</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Layout with Sidebar -->
+        <div class="dashboard-with-sidebar">
+            <!-- Main Dashboard Content -->
+            <div class="dashboard-main">
+                <!-- Main Dashboard Grid -->
+                <div class="dashboard-main-grid">
+                    <!-- Quick Actions -->
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h5 class="card-title">Quick Actions</h5>
+                        </div>
+                        <div class="card-content">
+                            <div class="quick-actions">
+                                <a href="appointments-modern.html" class="action-item">
+                                    <div class="action-icon blue" style="color: blue;">
+                                        <i class="fas fa-calendar-plus"></i>
+                                    </div>
+                                    <div class="action-content">
+                                        <h6>Book Appointment</h6>
+                                        <p>Schedule with a specialist</p>
+                                    </div>
+                                </a>
+                                <a href="ai-chat-modern.html" class="action-item">
+                                    <div class="action-icon green" style="color: green;">
+                                        <i class="fas fa-robot"></i>
+                                    </div>
+                                    <div class="action-content">
+                                        <h6>AI Health Assistant</h6>
+                                        <p>Get instant health advice</p>
+                                    </div>
+                                </a>
+                                <a href="doctors-modern.html" class="action-item">
+                                    <div class="action-icon cyan" style="color: cyan;">
+                                        <i class="fas fa-user-md"></i>
+                                    </div>
+                                    <div class="action-content">
+                                        <h6>Find Doctors</h6>
+                                        <p>Browse specialists</p>
+                                    </div>
+                                </a>
+                                <a href="messages-modern.html" class="action-item">
+                                    <div class="action-icon yellow" style="color: yellow;">
+                                        <i class="fas fa-comments"></i>
+                                    </div>
+                                    <div class="action-content">
+                                        <h6>Messages</h6>
+                                        <p>Chat with doctors</p>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Upcoming Appointments -->
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h5 class="card-title">Upcoming Appointments</h5>
+                            <a href="appointments-modern.html" class="view-all-link">View All</a>
+                        </div>
+                        <div class="card-content">
+                            <div class="appointments-list" id="upcomingAppointments">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Appointment History -->
+                <div class="dashboard-card full-width-card">
+                    <div class="card-header">
+                        <h5 class="card-title">Appointment History</h5>
+                        <a href="appointments-modern.html" class="view-all-link">View All</a>
+                    </div>
+                    <div class="card-content">
+                        <div class="appointment-history-table">
+                            <table class="history-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Doctor</th>
+                                        <th>Specialty</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="appointmentHistory">
+                                    <!-- Populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calendar Sidebar -->
+            <div class="calendar-sidebar-widget">
+                <!-- Mini Calendar -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h5 class="card-title">Calendar</h5>
+                        <div class="calendar-nav-mini">
+                            <button class="calendar-nav-btn-mini" onclick="previousMonth()">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <button class="calendar-nav-btn-mini" onclick="nextMonth()">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-content calendar-mini-content">
+                        <div class="calendar-month-year" id="calendarMonthYear">January 2024</div>
+                        <div class="calendar-mini-grid" id="calendarMiniGrid">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Today's Schedule -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h5 class="card-title">Today's Schedule</h5>
+                    </div>
+                    <div class="card-content">
+                        <div class="today-schedule" id="todaySchedule">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h5 class="card-title">This Week</h5>
+                    </div>
+                    <div class="card-content">
+                        <div class="week-stats">
+                            <div class="week-stat-item">
+                                <div class="week-stat-number">3</div>
+                                <div class="week-stat-label">Appointments</div>
+                            </div>
+                            <div class="week-stat-item">
+                                <div class="week-stat-number">2</div>
+                                <div class="week-stat-label">Check-ups</div>
+                            </div>
+                            <div class="week-stat-item">
+                                <div class="week-stat-number">1</div>
+                                <div class="week-stat-label">Follow-up</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/js/user/dashboard.js"></script>

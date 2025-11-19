@@ -11,5 +11,6 @@ namespace Repositories.Interface
     {
         Task<Patient?> GetPatientByUserIdAsync(int userId);
         Task UpdatePatientAsync(Patient patient);
+        Task<Patient?> CreatePatientAsync(Patient patient);
     }
 }
