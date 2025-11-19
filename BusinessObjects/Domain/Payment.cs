@@ -27,5 +27,7 @@ public partial class Payment
 
     public DateTime? UpdatedAt { get; set; }
 
+    public string? BookingDraftJson { get; set; }
+
     public virtual User PatientUser { get; set; } = null!;
 }

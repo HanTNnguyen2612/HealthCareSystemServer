@@ -309,6 +309,7 @@ public partial class HealthCareSystemContext : DbContext
             entity.Property(e => e.TransactionId).HasMaxLength(100);
             entity.Property(e => e.PaymentLinkId).HasMaxLength(100);
             entity.Property(e => e.PaymentLink).HasMaxLength(500);
+            entity.Property(e => e.BookingDraftJson);
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
