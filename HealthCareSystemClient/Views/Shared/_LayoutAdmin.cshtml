@@ -31,24 +31,6 @@
                 </div>
                 <span class="sidebar-text">User Management</span>
             </a>
-            <a asp-controller="Admin" asp-action="Contents" class="sidebar-item @(ViewData["ActiveMenu"] == "ContentManagement" ? "active" : "")">
-                <div class="sidebar-icon">
-                    <i class="fas fa-file-alt"></i>
-                </div>
-                <span class="sidebar-text">Content Management</span>
-            </a>
-            <a asp-controller="Admin" asp-action="System" class="sidebar-item @(ViewData["ActiveMenu"] == "SystemManagement" ? "active" : "")">
-                <div class="sidebar-icon">
-                    <i class="fas fa-cogs"></i>
-                </div>
-                <span class="sidebar-text">System Management</span>
-            </a>
-            <a asp-controller="Admin" asp-action="Reports" class="sidebar-item @(ViewData["ActiveMenu"] == "Reports" ? "active" : "")">
-                <div class="sidebar-icon">
-                    <i class="fas fa-chart-bar"></i>
-                </div>
-                <span class="sidebar-text">Reports</span>
-            </a>
             <form asp-controller="Login" asp-action="Logout" method="post" class="sidebar-item p-0 m-0 border-0 bg-transparent" onsubmit="return confirm('Are you sure you want to logout?');">
                 @Html.AntiForgeryToken()
                 <button type="submit" class="sidebar-item w-100 text-start bg-transparent border-0">

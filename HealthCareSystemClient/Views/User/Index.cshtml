@@ -1,12 +1,18 @@
 ﻿@*
     For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 *@
+@using System.Text.Json
 @{
     Layout = "_LayoutUser";
     ViewData["Title"] = "Health Dashboard";
-    var currentName = Context.Session.GetString("FullName") ?? Context.Session.GetString("Email") ?? "Guest";
+    
+    var appointments = ViewBag.Appointments as List<BusinessObjects.DataTransferObjects.AppointmentDTOs.AppointmentResponse> ?? new List<BusinessObjects.DataTransferObjects.AppointmentDTOs.AppointmentResponse>();
+    var patientProfile = ViewBag.PatientProfile as BusinessObjects.DataTransferObjects.PatientDTOs.PatientProfileDTO;
+    
+    // Use database data if available, fallback to session
+    var currentName = patientProfile?.FullName ?? Context.Session.GetString("FullName") ?? Context.Session.GetString("Email") ?? "Guest";
     var currentRole = Context.Session.GetString("Role") ?? "Patient";
-    var avatar = Context.Session.GetString("AvatarUrl") ?? "/placeholder.svg?height=32&width=32";
+    var avatar = !string.IsNullOrEmpty(patientProfile?.AvatarUrl) ? patientProfile.AvatarUrl : (Context.Session.GetString("AvatarUrl") ?? "/placeholder.svg?height=32&width=32");
 }
 <!-- Main Content -->
 <div class="main-content">
@@ -37,7 +43,7 @@
                     <i class="fas fa-calendar-check"></i>
                 </div>
                 <div class="stat-content">
-                    <h3>3</h3>
+                    <h3 id="upcomingCount">0</h3>
                     <p>Upcoming Appointments</p>
                 </div>
             </div>
@@ -46,7 +52,7 @@
                     <i class="fas fa-check-circle"></i>
                 </div>
                 <div class="stat-content">
-                    <h3>12</h3>
+                    <h3 id="completedCount">0</h3>
                     <p>Completed Visits</p>
                 </div>
             </div>
@@ -55,7 +61,7 @@
                     <i class="fas fa-envelope"></i>
                 </div>
                 <div class="stat-content">
-                    <h3>2</h3>
+                    <h3 id="unreadMessagesCount">0</h3>
                     <p>Unread Messages</p>
                 </div>
             </div>
@@ -64,7 +70,7 @@
                     <i class="fas fa-heart"></i>
                 </div>
                 <div class="stat-content">
-                    <h3>85%</h3>
+                    <h3 id="healthScore">--</h3>
                     <p>Health Score</p>
                 </div>
             </div>
@@ -207,15 +213,15 @@
                     <div class="card-content">
                         <div class="week-stats">
                             <div class="week-stat-item">
-                                <div class="week-stat-number">3</div>
+                                <div class="week-stat-number" id="weekAppointmentsCount">0</div>
                                 <div class="week-stat-label">Appointments</div>
                             </div>
                             <div class="week-stat-item">
-                                <div class="week-stat-number">2</div>
+                                <div class="week-stat-number" id="weekCheckupsCount">0</div>
                                 <div class="week-stat-label">Check-ups</div>
                             </div>
                             <div class="week-stat-item">
-                                <div class="week-stat-number">1</div>
+                                <div class="week-stat-number" id="weekFollowupsCount">0</div>
                                 <div class="week-stat-label">Follow-up</div>
                             </div>
                         </div>
@@ -226,4 +232,17 @@
     </div>
 </div>
 
-<script src="~/js/user/dashboard.js"></script>
+<script>
+    window.AppConfig = {
+        apiBaseUrl: '@(ViewBag.ApiBaseUrl ?? "https://localhost:7293")',
+        userId: @(Context.Session.GetInt32("UserId") ?? 0),
+        token: '@Html.Raw(Context.Session.GetString("AccessToken") ?? "")'
+    };
+    
+    // Pass initial data from server to avoid CORS/auth issues
+    window.DashboardInitialData = {
+        appointments: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(appointments)),
+        patientProfile: @Html.Raw(patientProfile != null ? System.Text.Json.JsonSerializer.Serialize(patientProfile) : "null")
+    };
+</script>
+<script src="~/js/user/dashboard.js?v=@DateTime.Now.Ticks"></script>
