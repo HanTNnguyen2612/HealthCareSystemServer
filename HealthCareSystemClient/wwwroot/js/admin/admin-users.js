@@ -6,125 +6,54 @@ const usersPerPage = 10
 const selectedUsers = new Set()
 const bootstrap = window.bootstrap // Declare the bootstrap variable
 
+// Định nghĩa endpoint API
+const API_BASE_URL = "https://localhost:7293/api/user"
+
 document.addEventListener("DOMContentLoaded", () => {
     loadUsers()
     setupSearch()
 })
 
-function loadUsers() {
-    // Sample users data
-    users = [
-        {
-            id: 1,
-            firstName: "John",
-            lastName: "Doe",
-            email: "john.doe@email.com",
-            phone: "+1 (555) 123-4567",
-            role: "patient",
-            status: "active",
-            registrationDate: "2024-01-15",
-            lastLogin: "2024-01-20 14:30",
-            verified: true,
-            avatar: "/placeholder.svg?height=40&width=40",
-        },
-        {
-            id: 2,
-            firstName: "Dr. Sarah",
-            lastName: "Johnson",
-            email: "sarah.johnson@hospital.com",
-            phone: "+1 (555) 234-5678",
-            role: "doctor",
-            status: "active",
-            registrationDate: "2024-01-10",
-            lastLogin: "2024-01-20 16:45",
-            verified: true,
-            avatar: "/placeholder.svg?height=40&width=40",
-        },
-        {
-            id: 3,
-            firstName: "Jane",
-            lastName: "Smith",
-            email: "jane.smith@email.com",
-            phone: "+1 (555) 345-6789",
-            role: "patient",
-            status: "pending",
-            registrationDate: "2024-01-18",
-            lastLogin: "Never",
-            verified: false,
-            avatar: "/placeholder.svg?height=40&width=40",
-        },
-        {
-            id: 4,
-            firstName: "Dr. Michael",
-            lastName: "Chen",
-            email: "michael.chen@hospital.com",
-            phone: "+1 (555) 456-7890",
-            role: "doctor",
-            status: "active",
-            registrationDate: "2024-01-12",
-            lastLogin: "2024-01-20 09:15",
-            verified: true,
-            avatar: "/placeholder.svg?height=40&width=40",
-        },
-        {
-            id: 5,
-            firstName: "Admin",
-            lastName: "User",
-            email: "admin@healthcare.com",
-            phone: "+1 (555) 567-8901",
-            role: "admin",
-            status: "active",
-            registrationDate: "2024-01-01",
-            lastLogin: "2024-01-20 17:00",
-            verified: true,
-            avatar: "/placeholder.svg?height=40&width=40",
-        },
-        {
-            id: 6,
-            firstName: "Emily",
-            lastName: "Davis",
-            email: "emily.davis@email.com",
-            phone: "+1 (555) 678-9012",
-            role: "patient",
-            status: "suspended",
-            registrationDate: "2024-01-08",
-            lastLogin: "2024-01-15 11:20",
-            verified: true,
-            avatar: "/placeholder.svg?height=40&width=40",
-        },
-        {
-            id: 7,
-            firstName: "Nurse",
-            lastName: "Wilson",
-            email: "nurse.wilson@hospital.com",
-            phone: "+1 (555) 789-0123",
-            role: "staff",
-            status: "active",
-            registrationDate: "2024-01-14",
-            lastLogin: "2024-01-20 13:45",
-            verified: true,
-            avatar: "/placeholder.svg?height=40&width=40",
-        },
-        {
-            id: 8,
-            firstName: "Robert",
-            lastName: "Brown",
-            email: "robert.brown@email.com",
-            phone: "+1 (555) 890-1234",
-            role: "patient",
-            status: "inactive",
-            registrationDate: "2024-01-05",
-            lastLogin: "2024-01-10 08:30",
-            verified: false,
-            avatar: "/placeholder.svg?height=40&width=40",
-        },
-    ]
+// --- CẬP NHẬT: Tải dữ liệu từ API ---
+async function loadUsers() {
+    try {
+        const response = await fetch(API_BASE_URL)
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        const userList = await response.json()
 
+        // Chuyển đổi DTO API thành cấu trúc dữ liệu cũ (với các thay đổi)
+        users = userList.map(apiUser => ({
+            id: apiUser.userId,
+            firstName: apiUser.fullName.split(' ')[0] || "",
+            lastName: apiUser.fullName.split(' ').slice(1).join(' ') || "",
+            email: apiUser.email,
+            phone: apiUser.phoneNumber || "N/A",
+            role: apiUser.role.toLowerCase() || "patient", // Đảm bảo role là chữ thường
+            // Sử dụng IsActive để xác định status và thêm trường isBanned
+            status: apiUser.isActive ? "active" : "suspended",
+            isBanned: !apiUser.isActive, // isBanned là ngược lại của IsActive
+            registrationDate: apiUser.createdAt ? apiUser.createdAt.split('T')[0] : "N/A",
+            lastLogin: apiUser.updatedAt ? new Date(apiUser.updatedAt).toLocaleString() : "Never",
+            verified: true, // Giả định là đã xác thực nếu có trong DB
+            avatar: apiUser.avatarUrl || "/placeholder.svg?height=40&width=40",
+        }))
+
+    } catch (error) {
+        console.error("Error loading users from API:", error)
+        // Dùng dữ liệu mẫu nếu API thất bại (Tùy chọn)
+        // users = [{ id: 999, firstName: "API", lastName: "Error", ... }];
+        alert("Failed to load users from API. Check console for details.")
+    }
+
+    // Reset bộ lọc và hiển thị
     filteredUsers = [...users]
     renderUsers()
     renderPagination()
 }
 
+// Hàm này không cần thay đổi nếu cấu trúc dữ liệu mới tương thích
 function setupSearch() {
     const searchInput = document.getElementById("searchInput")
     searchInput.addEventListener("input", (e) => {
@@ -142,6 +71,7 @@ function setupSearch() {
     })
 }
 
+// Hàm áp dụng bộ lọc không cần thay đổi nhiều, nhưng cần lưu ý trường 'status'
 function applyFilters() {
     const roleFilter = document.getElementById("roleFilter").value
     const statusFilter = document.getElementById("statusFilter").value
@@ -158,7 +88,7 @@ function applyFilters() {
             if (verificationFilter === "unverified" && user.verified) matches = false
         }
 
-        // Date filtering logic would go here
+        // Date filtering logic (giữ nguyên)
         if (dateFilter) {
             const userDate = new Date(user.registrationDate)
             const now = new Date()
@@ -201,6 +131,7 @@ function clearFilters() {
     renderPagination()
 }
 
+// --- CẬP NHẬT: Hiển thị nút Ban/Unban ---
 function renderUsers() {
     const startIndex = (currentPage - 1) * usersPerPage
     const endIndex = startIndex + usersPerPage
@@ -212,7 +143,7 @@ function renderUsers() {
             (user) => `
         <tr>
             <td>
-                <input type="checkbox" class="user-checkbox" value="${user.id}" onchange="toggleUserSelection(${user.id})">
+                <input type="checkbox" class="user-checkbox" value="${user.id}" onchange="toggleUserSelection(${user.id})" ${selectedUsers.has(user.id) ? 'checked' : ''}>
             </td>
             <td>
                 <div class="d-flex align-items-center">
@@ -229,24 +160,22 @@ function renderUsers() {
             </td>
             <td>
                 <span class="badge bg-${getStatusBadgeColor(user.status)}">${user.status.charAt(0).toUpperCase() + user.status.slice(1)}</span>
+                ${user.isBanned ? '<span class="badge bg-danger ms-1" title="Banned">BANNED</span>' : ''}
             </td>
             <td>${formatDate(user.registrationDate)}</td>
             <td>${user.lastLogin}</td>
             <td>
                 <div class="btn-group" role="group">
-                    <button class="btn btn-sm btn-outline-primary" onclick="editUser(${user.id})" title="Edit">
-                        <i class="fas fa-edit"></i>
-                    </button>
                     <button class="btn btn-sm btn-outline-info" onclick="viewUser(${user.id})" title="View">
                         <i class="fas fa-eye"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${user.id})" title="Delete">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                    <button class="btn btn-sm btn-outline-${user.isBanned ? 'success' : 'danger'}" onclick="toggleUserBanStatus(${user.id})" title="${user.isBanned ? 'Unban User' : 'Ban User'}">
+                        <i class="fas fa-${user.isBanned ? 'unlock' : 'ban'}"></i>
+                    </button>                   
                 </div>
             </td>
         </tr>
-    `,
+    `
         )
         .join("")
 }
@@ -264,7 +193,7 @@ function renderPagination() {
         </li>
     `
 
-    // Page numbers
+    // Page numbers (giữ nguyên logic hiển thị trang)
     for (let i = 1; i <= totalPages; i++) {
         if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
             paginationHTML += `
@@ -305,6 +234,7 @@ function getRoleBadgeColor(role) {
     return colors[role] || "secondary"
 }
 
+// Cập nhật để thể hiện trạng thái ban rõ ràng hơn
 function getStatusBadgeColor(status) {
     const colors = {
         active: "success",
@@ -316,6 +246,7 @@ function getStatusBadgeColor(status) {
 }
 
 function formatDate(dateString) {
+    if (dateString === "N/A") return "N/A"
     return new Date(dateString).toLocaleDateString("en-US", {
         year: "numeric",
         month: "short",
@@ -325,14 +256,23 @@ function formatDate(dateString) {
 
 function toggleSelectAll() {
     const selectAll = document.getElementById("selectAll")
+    // Chỉ chọn những user đang được hiển thị trên trang hiện tại
+    const startIndex = (currentPage - 1) * usersPerPage
+    const endIndex = startIndex + usersPerPage
+    const paginatedUsers = filteredUsers.slice(startIndex, endIndex)
+    const paginatedUserIds = new Set(paginatedUsers.map(user => user.id))
+
     const checkboxes = document.querySelectorAll(".user-checkbox")
 
     checkboxes.forEach((checkbox) => {
-        checkbox.checked = selectAll.checked
-        if (selectAll.checked) {
-            selectedUsers.add(Number.parseInt(checkbox.value))
-        } else {
-            selectedUsers.delete(Number.parseInt(checkbox.value))
+        const userId = Number.parseInt(checkbox.value)
+        if (paginatedUserIds.has(userId)) {
+            checkbox.checked = selectAll.checked
+            if (selectAll.checked) {
+                selectedUsers.add(userId)
+            } else {
+                selectedUsers.delete(userId)
+            }
         }
     })
 
@@ -346,6 +286,11 @@ function toggleUserSelection(userId) {
         selectedUsers.add(userId)
     }
 
+    // Cập nhật trạng thái của checkbox "Select All" nếu cần
+    const totalUsersOnPage = document.querySelectorAll(".user-checkbox").length
+    const checkedUsersOnPage = document.querySelectorAll(".user-checkbox:checked").length
+    document.getElementById("selectAll").checked = totalUsersOnPage > 0 && totalUsersOnPage === checkedUsersOnPage
+
     updateBulkActions()
 }
 
@@ -356,49 +301,20 @@ function updateBulkActions() {
     if (selectedUsers.size > 0) {
         bulkActionsCard.style.display = "block"
         selectedCount.textContent = selectedUsers.size
+        // Bạn có thể cập nhật các tùy chọn Bulk Action ở đây nếu cần (ví dụ: chỉ hiện Ban/Unban)
     } else {
         bulkActionsCard.style.display = "none"
     }
 }
 
+// Giữ nguyên các hàm thêm/sửa/xem người dùng (để hoàn thiện UI sau)
 function addUser() {
-    const form = document.getElementById("addUserForm")
-    const formData = new FormData(form)
-
-    // Basic validation
-    if (!form.checkValidity()) {
-        form.reportValidity()
-        return
-    }
-
-    const newUser = {
-        id: users.length + 1,
-        firstName: document.getElementById("firstName").value,
-        lastName: document.getElementById("lastName").value,
-        email: document.getElementById("email").value,
-        phone: document.getElementById("phone").value,
-        role: document.getElementById("role").value,
-        status: document.getElementById("status").value,
-        registrationDate: new Date().toISOString().split("T")[0],
-        lastLogin: "Never",
-        verified: false,
-        avatar: "/placeholder.svg?height=40&width=40",
-    }
-
-    users.push(newUser)
-    filteredUsers = [...users]
-    renderUsers()
-    renderPagination()
-
-    // Close modal and reset form
-    const modal = bootstrap.Modal.getInstance(document.getElementById("addUserModal"))
-    modal.hide()
-    form.reset()
-
-    alert("User added successfully!")
+    // Để thực tế, hàm này cần gọi API POST /api/user để tạo user mới
+    alert("Add User functionality needs API integration (POST /api/user)")
 }
 
 function editUser(userId) {
+    // Để thực tế, hàm này cần gọi API PUT/PATCH /api/user/{userId} để cập nhật user
     const user = users.find((u) => u.id === userId)
     if (!user) return
 
@@ -409,7 +325,7 @@ function editUser(userId) {
     document.getElementById("editEmail").value = user.email
     document.getElementById("editPhone").value = user.phone
     document.getElementById("editRole").value = user.role
-    document.getElementById("editStatus").value = user.status
+    document.getElementById("editStatus").value = user.status // Giữ nguyên cho đến khi có API update
 
     // Show modal
     const modal = new bootstrap.Modal(document.getElementById("editUserModal"))
@@ -417,30 +333,13 @@ function editUser(userId) {
 }
 
 function updateUser() {
-    const userId = Number.parseInt(document.getElementById("editUserId").value)
-    const userIndex = users.findIndex((u) => u.id === userId)
+    // Để thực tế, hàm này cần gọi API PUT/PATCH /api/user/{userId} để cập nhật user
+    alert("Update User functionality needs API integration (PUT /api/user/{userId})")
 
-    if (userIndex === -1) return
-
-    // Update user data
-    users[userIndex] = {
-        ...users[userIndex],
-        firstName: document.getElementById("editFirstName").value,
-        lastName: document.getElementById("editLastName").value,
-        email: document.getElementById("editEmail").value,
-        phone: document.getElementById("editPhone").value,
-        role: document.getElementById("editRole").value,
-        status: document.getElementById("editStatus").value,
-    }
-
-    filteredUsers = [...users]
-    renderUsers()
-
-    // Close modal
+    // Đóng modal và tải lại dữ liệu (chỉ là tạm thời)
     const modal = bootstrap.Modal.getInstance(document.getElementById("editUserModal"))
     modal.hide()
-
-    alert("User updated successfully!")
+    loadUsers()
 }
 
 function viewUser(userId) {
@@ -448,35 +347,77 @@ function viewUser(userId) {
     if (!user) return
 
     alert(
-        `User Details:\nName: ${user.firstName} ${user.lastName}\nEmail: ${user.email}\nRole: ${user.role}\nStatus: ${user.status}`,
+        `User Details:\nName: ${user.firstName} ${user.lastName}\nEmail: ${user.email}\nRole: ${user.role}\nStatus: ${user.status} ${user.isBanned ? '(BANNED)' : '(ACTIVE)'}\nPhone: ${user.phone}`,
     )
 }
 
-function deleteUser(userId) {
-    if (confirm("Are you sure you want to delete this user?")) {
-        users = users.filter((u) => u.id !== userId)
-        filteredUsers = [...users]
-        renderUsers()
-        renderPagination()
-        alert("User deleted successfully!")
+// --- CẬP NHẬT: Thay thế deleteUser bằng toggleUserBanStatus ---
+async function toggleUserBanStatus(userId) {
+    const user = users.find((u) => u.id === userId)
+    if (!user) return
+
+    const action = user.isBanned ? "Unban" : "Ban"
+    const confirmMessage = `Are you sure you want to ${action} user: ${user.firstName} ${user.lastName} (ID: ${userId})?`
+
+    if (confirm(confirmMessage)) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/ban-unban-user/${userId}`, {
+                method: 'POST', // API của bạn sử dụng POST, tôi giữ nguyên
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Thêm Authorization header nếu cần (tùy thuộc vào cách bạn quản lý token admin)
+                    // 'Authorization': 'Bearer YOUR_ADMIN_TOKEN_HERE' 
+                },
+                // Body không cần thiết với endpoint này nhưng nếu API yêu cầu, có thể thêm:
+                // body: JSON.stringify({ userId: userId }),
+            })
+
+            if (!response.ok) {
+                // Đọc thông báo lỗi từ body nếu có, hoặc dùng status mặc định
+                const errorText = await response.text()
+                throw new Error(`Failed to ${action} user. Status: ${response.status}. Message: ${errorText}`)
+            }
+
+            // Xử lý thành công
+            alert(`${action} successful!`)
+            // Tải lại dữ liệu người dùng để cập nhật trạng thái
+            await loadUsers()
+
+        } catch (error) {
+            console.error(`Error during ${action} operation:`, error)
+            alert(`Operation failed: ${error.message}`)
+        }
     }
 }
+// Đổi tên hàm deleteUser cũ thành toggleUserBanStatus để tránh nhầm lẫn
+const deleteUser = toggleUserBanStatus // Giữ dòng này để nếu có element nào vẫn gọi deleteUser thì nó sẽ gọi toggleUserBanStatus
 
 function bulkAction(action) {
     if (selectedUsers.size === 0) return
 
+    // Cập nhật logic để hỗ trợ Bulk Ban/Unban nếu bạn muốn
+    // Hiện tại, bulkAction chỉ có 'activate', 'suspend', 'delete'. 
+    // Chúng ta sẽ cần cập nhật nó để call API nếu muốn dùng Bulk Ban/Unban thật.
+
     const actionText = action === "activate" ? "activate" : action === "suspend" ? "suspend" : "delete"
 
+    if (action === "delete") {
+        // Thay đổi Bulk Delete thành Bulk Ban (hoặc bỏ qua Bulk Delete hoàn toàn)
+        alert("Bulk Delete is disabled. Use Bulk Ban/Unban functionality (not yet implemented with API).")
+        return
+    }
+
+    // Logic Bulk Actions cũ (chỉ cập nhật UI local)
     if (confirm(`Are you sure you want to ${actionText} ${selectedUsers.size} selected users?`)) {
         selectedUsers.forEach((userId) => {
             const userIndex = users.findIndex((u) => u.id === userId)
             if (userIndex !== -1) {
-                if (action === "delete") {
-                    users.splice(userIndex, 1)
-                } else if (action === "activate") {
+                if (action === "activate") {
                     users[userIndex].status = "active"
+                    users[userIndex].isBanned = false
                 } else if (action === "suspend") {
                     users[userIndex].status = "suspended"
+                    users[userIndex].isBanned = true // Có thể map suspend với ban/unban
                 }
             }
         })
@@ -487,10 +428,12 @@ function bulkAction(action) {
         renderPagination()
         updateBulkActions()
 
-        alert(`Bulk ${actionText} completed successfully!`)
+        alert(`Bulk ${actionText} completed successfully (Local update only)!`)
+        // Cần gọi loadUsers() nếu muốn cập nhật từ API sau khi Bulk Action
     }
 }
 
+// Giữ nguyên các hàm export và logout
 function exportUsers(format) {
     if (format === "csv") {
         exportToCSV()
@@ -508,6 +451,7 @@ function exportToCSV() {
         "Phone",
         "Role",
         "Status",
+        "Is Banned",
         "Registration Date",
         "Last Login",
     ]
@@ -522,6 +466,7 @@ function exportToCSV() {
                 user.phone,
                 user.role,
                 user.status,
+                user.isBanned ? 'True' : 'False',
                 user.registrationDate,
                 user.lastLogin,
             ].join(","),

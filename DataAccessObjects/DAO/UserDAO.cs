@@ -1,4 +1,5 @@
 ﻿using BusinessObjects.DataTransferObjects.AppointmentDTOs;
+using BusinessObjects.DataTransferObjects.UserDTOs;
 using BusinessObjects.Domain;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -13,15 +14,29 @@ namespace DataAccessObjects.DAO
     {
         private static readonly HealthCareSystemContext _context = new HealthCareSystemContext();
 
-        public static async Task<List<User>> GetAllUsers()
+        public static async Task<List<UserResponseDTO>> GetAllUsers()
         {
-            return await _context.Users.ToListAsync();
-        } 
+            return await _context.Users
+                .Where(u => u.UserId != 1)  
+                .Select(u => new UserResponseDTO
+                {
+                    UserId = u.UserId,
+                    Email = u.Email,
+                    Role = u.Role,
+                    FullName = u.FullName,
+                    PhoneNumber = u.PhoneNumber,
+                    AvatarUrl = u.AvatarUrl,
+                    CreatedAt = u.CreatedAt,
+                    UpdatedAt = u.UpdatedAt,
+                    IsActive = u.IsActive
+                })
+                .ToListAsync();
+        }
         public static async Task<User?> GetUserByEmail(string email)
         {
             return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
         }
-        public static async Task<User?> GetUserById(int Id)
+        public static async Task<User> GetUserById(int Id)
         {
             return await _context.Users.FirstOrDefaultAsync(u => u.UserId == Id);
         }

@@ -1,6 +1,7 @@
 ﻿using BusinessObjects.DataTransferObjects.AppointmentDTOs;
 using BusinessObjects.DataTransferObjects.UserDTOs;
 using BusinessObjects.Domain;
+using CloudinaryDotNet.Actions;
 using DataAccessObjects.DAO;
 using Repositories.Interface;
 using Services.Interface;
@@ -24,9 +25,13 @@ namespace Services.Services
             _dao = dao;
         }
 
-        public async Task<bool> BanOrUnBanUserAsync(string email)
+        public async Task<List<UserResponseDTO>> GetAllUsers()
         {
-            return await _repository.BanOrUnBanUserAsync(email);
+            return await _repository.GetAllUsers();
+        }
+        public async Task<bool> BanOrUnBanUserAsync(int id)
+        {
+            return await _repository.BanOrUnBanUserAsync(id);
         }
 
         public async Task<bool> ChangePasswordAsync(string email, ChangePasswordRequest request)
@@ -49,6 +54,6 @@ namespace Services.Services
             return await _repository.UpdateUserAsync(email, request);
         }
 
-       
+        public async Task<User?> GetUserById(int id) => await _repository.GetUserById(id);
     }
 }
