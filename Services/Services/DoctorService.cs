@@ -1,4 +1,5 @@
 ﻿using BusinessObjects.DataTransferObjects.DoctorDTOs;
+using BusinessObjects.DataTransferObjects.PatientDTOs;
 using BusinessObjects.Domain;
 using Repositories.Interface;
 using Services.Interface;
@@ -81,6 +82,8 @@ namespace Services.Services
 
             return profileList;
         }
+
+        public async Task<IEnumerable<PatientProfileDTO>> GetPatientsByDoctorId(int doctorUserId) => await _doctorRepository.GetPatientsByDoctorId(doctorUserId);
     }
 }
 

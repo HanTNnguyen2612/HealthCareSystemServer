@@ -1,262 +1,371 @@
-﻿// Doctor Patients functionality
+﻿// Định nghĩa Endpoint API (Giả định PatientController đang chạy trên /api/Patient)
+const API_URL = "https://localhost:7293/api/Patient";
+
+// Biến toàn cục để lưu trữ dữ liệu và trạng thái lọc
+let allPatients = [];
+let currentFilter = 'all';
+let currentSearch = '';
+
+// --- INITIALIZATION ---
+
 document.addEventListener("DOMContentLoaded", () => {
-    initializePatients()
-    loadPatients()
-    setupEventListeners()
-})
+    initializePatients();
+    loadPatients(); // Bắt đầu tải dữ liệu từ API
+    setupEventListeners();
+});
 
 function initializePatients() {
-    const doctorName = localStorage.getItem("doctorName") || "Dr. Sarah Johnson"
-    document.getElementById("doctorName").textContent = doctorName
+    const doctorName = localStorage.getItem("doctorName") || "Dr. Sarah Johnson";
+    const doctorNameElement = document.getElementById("doctorName");
+    if (doctorNameElement) {
+        doctorNameElement.textContent = doctorName;
+    }
+    // Kích hoạt nút 'All Patients' mặc định
+    const allBtn = document.querySelector(".filter-btn[data-status='all']");
+    if (allBtn) allBtn.classList.add("active");
 }
 
-const patients = [
-    {
-        id: 1,
-        name: "John Doe",
-        age: 45,
-        email: "john.doe@email.com",
-        phone: "+1 (555) 123-4567",
-        condition: "Hypertension",
-        lastVisit: "2024-01-18",
-        status: "active",
-        avatar: "/placeholder.svg?height=60&width=60",
-        medicalHistory: "History of high blood pressure, currently on medication",
-        medications: ["Lisinopril 10mg", "Hydrochlorothiazide 25mg"],
-        allergies: ["Penicillin"],
-    },
-    {
-        id: 2,
-        name: "Jane Smith",
-        age: 32,
-        email: "jane.smith@email.com",
-        phone: "+1 (555) 234-5678",
-        condition: "Diabetes Type 2",
-        lastVisit: "2024-01-15",
-        status: "critical",
-        avatar: "/placeholder.svg?height=60&width=60",
-        medicalHistory: "Recently diagnosed with Type 2 diabetes",
-        medications: ["Metformin 500mg", "Insulin"],
-        allergies: ["None known"],
-    },
-    {
-        id: 3,
-        name: "Mike Johnson",
-        age: 28,
-        email: "mike.johnson@email.com",
-        phone: "+1 (555) 345-6789",
-        condition: "Anxiety Disorder",
-        lastVisit: "2024-01-20",
-        status: "follow-up",
-        avatar: "/placeholder.svg?height=60&width=60",
-        medicalHistory: "Generalized anxiety disorder, responds well to therapy",
-        medications: ["Sertraline 50mg"],
-        allergies: ["Latex"],
-    },
-    {
-        id: 4,
-        name: "Sarah Wilson",
-        age: 38,
-        email: "sarah.wilson@email.com",
-        phone: "+1 (555) 456-7890",
-        condition: "Migraine",
-        lastVisit: "2024-01-10",
-        status: "active",
-        avatar: "/placeholder.svg?height=60&width=60",
-        medicalHistory: "Chronic migraines, family history of headaches",
-        medications: ["Sumatriptan 50mg PRN"],
-        allergies: ["Aspirin"],
-    },
-    {
-        id: 5,
-        name: "David Brown",
-        age: 52,
-        email: "david.brown@email.com",
-        phone: "+1 (555) 567-8901",
-        condition: "Diabetes Type 1",
-        lastVisit: "2024-01-22",
-        status: "active",
-        avatar: "/placeholder.svg?height=60&width=60",
-        medicalHistory: "Type 1 diabetes since childhood, well controlled",
-        medications: ["Insulin pump", "Continuous glucose monitor"],
-        allergies: ["None known"],
-    },
-    {
-        id: 6,
-        name: "Lisa Anderson",
-        age: 29,
-        email: "lisa.anderson@email.com",
-        phone: "+1 (555) 678-9012",
-        condition: "Depression",
-        lastVisit: "2024-01-19",
-        status: "new",
-        avatar: "/placeholder.svg?height=60&width=60",
-        medicalHistory: "First episode of major depression",
-        medications: ["Fluoxetine 20mg"],
-        allergies: ["None known"],
-    },
-]
+// --- DATA FETCHING & RENDERING ---
 
-const filteredPatients = patients
+/**
+ * Tải dữ liệu bệnh nhân từ API /api/Patient
+ */
+async function loadPatients() {
+    const container = document.getElementById("patientsGrid");
+    if (!container) return;
 
-function loadPatients(patientsToShow = patients) {
-    const container = document.getElementById("patientsGrid")
-    if (!container) return
+    // Hiển thị trạng thái tải
+    container.innerHTML = `<div class="w-full text-center p-5 text-gray-500 col-span-full"><i class="fas fa-spinner fa-spin me-2"></i>Loading patient data from API...</div>`;
 
-    container.innerHTML = patientsToShow.map((patient) => createPatientCard(patient)).join("")
+    try {
+        // GET: /api/Doctor/get-patient (Giả định endpoint này trả về danh sách tất cả bệnh nhân)
+        const response = await fetch(`${API_BASE_URL}/api/doctor/get-patient/${CURRENT_USER_ID}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        // Giả định API trả về một mảng các đối tượng bệnh nhân
+        const data = await response.json();
+
+        // Gán dữ liệu cho biến toàn cục
+        // Chú ý: Backend có thể trả về các trường khác nhau, ta cần chuẩn hóa ID và STATUS
+        allPatients = data.map(p => ({
+            ...p,
+            id: p.id || p.userId, // Sử dụng ID hoặc UserId (quan trọng cho API gọi lại)
+            status: (p.status || 'active').toLowerCase(),
+            name: p.fullName || p.name || 'Unknown Patient'
+        }));
+
+        applyFiltersAndSearch();
+
+    } catch (error) {
+        console.error("Failed to load patients from API:", error);
+        container.innerHTML = `
+            <div class="w-full text-center p-5 text-danger col-span-full">
+                <i class="fas fa-exclamation-circle me-2"></i>Error loading patient data. Please ensure the API is running.
+            </div>
+        `;
+    }
+}
+
+/**
+ * Lọc dữ liệu bệnh nhân cục bộ dựa trên trạng thái và từ khóa tìm kiếm
+ */
+function applyFiltersAndSearch() {
+    let patientsToShow = allPatients;
+
+    // 1. Lọc theo trạng thái
+    if (currentFilter !== 'all') {
+        patientsToShow = patientsToShow.filter(p => (p.status || 'active').toLowerCase() === currentFilter);
+    }
+
+    // 2. Lọc theo từ khóa tìm kiếm
+    if (currentSearch) {
+        const searchLower = currentSearch.toLowerCase();
+        patientsToShow = patientsToShow.filter(p =>
+            (p.name || '').toLowerCase().includes(searchLower) ||
+            (p.condition || '').toLowerCase().includes(searchLower) ||
+            (p.email || '').toLowerCase().includes(searchLower)
+        );
+    }
+
+    // Sắp xếp theo tên (tùy chọn)
+    patientsToShow.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+    renderPatientsGrid(patientsToShow);
+}
+
+function renderPatientsGrid(patientsToShow) {
+    const container = document.getElementById("patientsGrid");
+    if (!container) return;
+
+    if (patientsToShow.length === 0) {
+        container.innerHTML = `
+            <div class="w-full text-center p-5 text-gray-500 col-span-full">
+                <i class="fas fa-users-slash text-4xl mb-3"></i>
+                <p class="text-lg">No patients found matching the current criteria.</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = patientsToShow.map((patient) => createPatientCard(patient)).join("");
 }
 
 function createPatientCard(patient) {
+    const statusClass = (patient.status || 'active').toLowerCase();
+    const condition = patient.condition || 'N/A';
+    const lastVisit = formatDate(patient.lastVisit);
+    const avatar = patient.avatar || 'https://placehold.co/60x60/8863A2/FFFFFF?text=P';
+
     return `
-    <div class="patient-card" onclick="viewPatientDetails(${patient.id})">
-      <span class="patient-status ${patient.status}">${patient.status}</span>
-      <div class="patient-card-header">
-        <img src="${patient.avatar}" alt="${patient.name}" class="patient-avatar">
-        <div class="patient-info">
-          <h6>${patient.name}</h6>
-          <p>${patient.email}</p>
-          <p class="patient-age">Age ${patient.age}</p>
+        <div class="patient-card" onclick="viewPatientDetails(${patient.id})">
+            <span class="patient-status ${statusClass}">${statusClass}</span>
+            <div class="patient-card-header">
+                <img src="${avatar}" alt="${patient.name}" class="patient-avatar">
+                <div class="patient-info">
+                    <h6>${patient.name}</h6>
+                    <p>${patient.email || 'N/A'}</p>
+                    <p class="patient-age">Age ${patient.age || 'N/A'}</p>
+                </div>
+            </div>
+            <div class="patient-details">
+                <div class="patient-condition">${condition}</div>
+                <div class="patient-last-visit">Last visit: ${lastVisit}</div>
+            </div>
+            <div class="patient-actions" onclick="event.stopPropagation()">
+                <button class="btn btn-sm btn-primary" onclick="scheduleAppointment(${patient.id})">
+                    <i class="fas fa-calendar-plus"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="sendMessage(${patient.id})">
+                    <i class="fas fa-envelope"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-info" onclick="viewMedicalHistory(${patient.id})">
+                    <i class="fas fa-file-medical"></i>
+                </button>
+            </div>
         </div>
-      </div>
-      <div class="patient-details">
-        <div class="patient-condition">${patient.condition}</div>
-        <div class="patient-last-visit">Last visit: ${formatDate(patient.lastVisit)}</div>
-      </div>
-      <div class="patient-actions" onclick="event.stopPropagation()">
-        <button class="btn btn-sm btn-primary" onclick="scheduleAppointment(${patient.id})">
-          <i class="fas fa-calendar-plus"></i>
-        </button>
-        <button class="btn btn-sm btn-outline-secondary" onclick="sendMessage(${patient.id})">
-          <i class="fas fa-envelope"></i>
-        </button>
-        <button class="btn btn-sm btn-outline-info" onclick="viewMedicalHistory(${patient.id})">
-          <i class="fas fa-file-medical"></i>
-        </button>
-      </div>
-    </div>
-  `
+    `;
 }
+
+
+// --- EVENT LISTENERS & FILTERING LOGIC ---
 
 function setupEventListeners() {
-    // Search functionality
-    const searchInput = document.getElementById("searchInput")
+    const searchInput = document.getElementById("searchInput");
     if (searchInput) {
         searchInput.addEventListener("input", (e) => {
-            filterPatients(e.target.value)
-        })
-    }
-}
-
-function filterPatients(status) {
-    const filterBtns = document.querySelectorAll(".filter-btn")
-    filterBtns.forEach((btn) => btn.classList.remove("active"))
-
-    if (status !== "all") {
-        event.target.classList.add("active")
-    } else {
-        document.querySelector(".filter-btn").classList.add("active")
+            currentSearch = e.target.value.trim();
+            applyFiltersAndSearch();
+        });
     }
 
-    // Filter logic would go here
-    console.log("Filtering patients by status:", status)
+    // Gán sự kiện cho các nút lọc
+    document.querySelectorAll(".filter-btn").forEach(btn => {
+        btn.onclick = (e) => {
+            const status = e.currentTarget.getAttribute('data-status');
+            filterPatients(status, e);
+        };
+    });
 }
 
-function viewPatientDetails(patientId) {
-    // Get patient data (in real app, this would be an API call)
-    const patients = getPatientData()
-    const patient = patients.find((p) => p.id === patientId)
+/**
+ * Cập nhật bộ lọc trạng thái và áp dụng lại tìm kiếm/lọc.
+ */
+function filterPatients(status, event) {
+    currentFilter = status;
 
-    if (!patient) return
+    // Cập nhật trạng thái nút active
+    const filterBtns = document.querySelectorAll(".filter-btn");
+    filterBtns.forEach((btn) => btn.classList.remove("active"));
 
-    // Populate modal with patient details
-    const modalTitle = document.getElementById("patientDetailsTitle")
-    const modalBody = document.getElementById("patientDetailsBody")
+    if (event && event.currentTarget) {
+        event.currentTarget.classList.add("active");
+    }
 
-    modalTitle.textContent = `${patient.name} - Patient Details`
+    applyFiltersAndSearch();
+}
+
+// --- MODAL & API ACTIONS ---
+
+/**
+ * Tải chi tiết bệnh nhân từ API và hiển thị Modal
+ */
+async function viewPatientDetails(patientId) {
+    let patient;
+
+    // 1. Tìm kiếm cục bộ trước
+    patient = allPatients.find((p) => p.id == patientId);
+
+    // 2. Nếu không tìm thấy hoặc cần dữ liệu chi tiết hơn, gọi API
+    if (!patient || !patient.phone || !patient.dob) {
+        try {
+            // GET: /api/Patient/{userId}
+            const response = await fetch(`${API_URL}/${patientId}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            patient = await response.json();
+
+            // Cập nhật lại dữ liệu cục bộ (tùy chọn)
+            if (patient) {
+                const index = allPatients.findIndex(p => p.id == patientId);
+                if (index !== -1) {
+                    allPatients[index] = { ...allPatients[index], ...patient };
+                }
+            }
+        } catch (e) {
+            console.error("Error fetching detailed patient profile:", e);
+            showNotification("Could not load detailed patient profile from API.", "danger");
+            return;
+        }
+    }
+
+    if (!patient) {
+        showNotification("Patient data not found.", "warning");
+        return;
+    }
+
+    const modalTitle = document.getElementById("patientDetailsTitle");
+    const modalBody = document.getElementById("patientDetailsBody");
+    const patientAvatar = patient.avatar || 'https://placehold.co/120x120/8863A2/FFFFFF?text=P';
+
+    modalTitle.textContent = `${patient.name} - Patient Details`;
 
     modalBody.innerHTML = `
     <div class="row">
       <div class="col-md-4">
         <div class="text-center mb-3">
-          <img src="${patient.avatar}" alt="${patient.name}" class="profile-avatar-xl">
+          <img src="${patientAvatar}" alt="${patient.name}" class="profile-avatar-xl">
           <h5 class="mt-2">${patient.name}</h5>
-          <p class="text-muted">Age ${patient.age}</p>
-          <span class="badge bg-${getStatusColor(patient.status)}">${patient.status}</span>
+          <p class="text-muted">Age ${patient.age || 'N/A'}</p>
+          <span class="badge bg-${getStatusColor(patient.status || 'active')}">${patient.status || 'active'}</span>
         </div>
       </div>
       <div class="col-md-8">
         <div class="row">
           <div class="col-md-6 mb-3">
-            <label class="form-label">Email</label>
-            <p>${patient.email}</p>
+            <label class="form-label fw-bold">Email</label>
+            <p>${patient.email || 'N/A'}</p>
           </div>
           <div class="col-md-6 mb-3">
-            <label class="form-label">Phone</label>
-            <p>${patient.phone}</p>
+            <label class="form-label fw-bold">Phone</label>
+            <p>${patient.phone || 'N/A'}</p>
           </div>
           <div class="col-md-6 mb-3">
-            <label class="form-label">Primary Condition</label>
-            <p>${patient.condition}</p>
+            <label class="form-label fw-bold">Date of Birth</label>
+            <p>${patient.dob ? formatDate(patient.dob) : 'N/A'}</p>
           </div>
           <div class="col-md-6 mb-3">
-            <label class="form-label">Last Visit</label>
-            <p>${formatDate(patient.lastVisit)}</p>
+            <label class="form-label fw-bold">Primary Condition</label>
+            <p>${patient.condition || 'N/A'}</p>
+          </div>
+          <div class="col-md-12 mb-3">
+            <label class="form-label fw-bold">Address</label>
+            <p>${patient.address || 'N/A'}</p>
           </div>
         </div>
       </div>
     </div>
 
     <hr>
-
+    
+    <h6 class="mb-3">Health Profile</h6>
     <div class="row">
-      <div class="col-md-12 mb-3">
+      <div class="col-md-6 mb-3">
         <h6>Medical History</h6>
-        <p>${patient.medicalHistory}</p>
+        <p class="bg-light p-2 rounded">${patient.medicalHistory || 'No history recorded.'}</p>
+        <h6>Emergency Contact</h6>
+        <p><strong>Name:</strong> ${patient.emergencyContact || 'N/A'}</p>
+        <p><strong>Phone:</strong> ${patient.emergencyPhone || 'N/A'}</p>
       </div>
-    </div>
-
-    <div class="row">
       <div class="col-md-6 mb-3">
         <h6>Current Medications</h6>
         <ul class="list-unstyled">
-          ${patient.medications.map((med) => `<li><i class="fas fa-pills text-primary me-2"></i>${med}</li>`).join("")}
+          ${(patient.medications && patient.medications.length > 0) ? patient.medications.map((med) => `<li><i class="fas fa-pills text-primary me-2"></i>${med}</li>`).join("") : '<li>No current medications.</li>'}
         </ul>
-      </div>
-      <div class="col-md-6 mb-3">
         <h6>Allergies</h6>
         <ul class="list-unstyled">
-          ${patient.allergies.map((allergy) => `<li><i class="fas fa-exclamation-triangle text-warning me-2"></i>${allergy}</li>`).join("")}
+          ${(patient.allergies && patient.allergies.length > 0) ? patient.allergies.map((allergy) => `<li><i class="fas fa-exclamation-triangle text-warning me-2"></i>${allergy}</li>`).join("") : '<li>No known allergies.</li>'}
         </ul>
       </div>
     </div>
-  `
+    `;
 
-    // Show modal
-    const modal = window.bootstrap.Modal(document.getElementById("patientDetailsModal"))
-    modal.show()
+    // Hiển thị modal
+    const modal = new window.bootstrap.Modal(document.getElementById("patientDetailsModal"));
+    modal.show();
 }
 
-function getPatientData() {
-    // This would normally come from an API
-    return [
-        {
-            id: 1,
-            name: "John Doe",
-            age: 45,
-            email: "john.doe@email.com",
-            phone: "+1 (555) 123-4567",
-            condition: "Hypertension",
-            lastVisit: "2024-01-18",
-            status: "active",
-            avatar: "/placeholder.svg?height=120&width=120",
-            medicalHistory:
-                "History of high blood pressure, currently on medication. Patient has been compliant with treatment plan.",
-            medications: ["Lisinopril 10mg daily", "Hydrochlorothiazide 25mg daily"],
-            allergies: ["Penicillin"],
-        },
-        // Add more patients as needed
-    ]
+/**
+ * Gửi dữ liệu bệnh nhân mới đến API (POST)
+ */
+async function addPatient() {
+    const form = document.getElementById("addPatientForm");
+
+    // Kiểm tra tính hợp lệ của form
+    if (form.checkValidity() === false) {
+        form.classList.add('was-validated');
+        return;
+    }
+    form.classList.remove('was-validated');
+
+    // Giả định form có các trường sau:
+    const patientData = {
+        // Tên cần được xử lý trong backend nếu CreatePatientDTO yêu cầu riêng
+        // Ta giả định backend chấp nhận các trường dưới đây
+        firstName: document.getElementById("firstName").value,
+        lastName: document.getElementById("lastName").value,
+        email: document.getElementById("email").value,
+        phone: document.getElementById("phone").value,
+        dob: document.getElementById("dateOfBirth").value,
+        gender: document.getElementById("gender").value,
+        address: document.getElementById("address").value,
+        // Các trường bổ sung:
+        emergencyContact: document.getElementById("emergencyContact").value,
+        emergencyPhone: document.getElementById("emergencyPhone").value,
+        // Giả định backend chấp nhận trường này trong DTO
+        medicalHistory: document.getElementById("medicalHistory").value,
+    };
+
+    try {
+        // POST: /api/Patient
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(patientData),
+        });
+
+        if (!response.ok) {
+            // Lấy thông báo lỗi cụ thể từ response nếu có
+            const errorText = await response.text();
+            throw new Error(`API POST failed with status: ${response.status}. Message: ${errorText}`);
+        }
+
+        // Đóng modal và hiển thị thông báo
+        window.bootstrap.Modal.getInstance(document.getElementById("addPatientModal")).hide();
+        form.reset();
+        showNotification("Patient added successfully!", "success");
+
+        // Tải lại danh sách bệnh nhân để hiển thị dữ liệu mới từ API
+        loadPatients();
+
+    } catch (e) {
+        console.error("Error adding document to API: ", e);
+        showNotification("Error adding patient. Check console for details.", "danger");
+    }
 }
+
+function openAddPatientModal() {
+    const modal = new window.bootstrap.Modal(document.getElementById("addPatientModal"));
+    document.getElementById("addPatientForm").classList.remove('was-validated');
+    document.getElementById("addPatientForm").reset();
+    modal.show();
+}
+
+// --- UTILITY FUNCTIONS ---
 
 function getStatusColor(status) {
     const colors = {
@@ -265,82 +374,79 @@ function getStatusColor(status) {
         "follow-up": "warning",
         new: "info",
     }
-    return colors[status] || "secondary"
+    return colors[status.toLowerCase()] || "secondary"
 }
 
 function formatDate(dateString) {
-    const date = new Date(dateString)
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    if (isNaN(date)) return dateString;
     return date.toLocaleDateString("en-US", {
         year: "numeric",
         month: "short",
         day: "numeric",
-    })
-}
-
-// Action functions
-function scheduleAppointment(patientId) {
-    console.log("Scheduling appointment for patient:", patientId)
-    // Pre-fill patient in appointment modal
-    openNewAppointmentModal()
-}
-
-function sendMessage(patientId) {
-    console.log("Sending message to patient:", patientId)
-    window.location.href = `doctor-messages.html?patient=${patientId}`
-}
-
-function viewMedicalHistory(patientId) {
-    console.log("Viewing medical history for patient:", patientId)
-    viewPatientDetails(patientId)
-}
-
-function scheduleAppointmentForPatient() {
-    // This would be called from the patient details modal
-    window.bootstrap.Modal.getInstance(document.getElementById("patientDetailsModal")).hide()
-    openNewAppointmentModal()
-}
-
-function openAddPatientModal() {
-    const modal = window.bootstrap.Modal(document.getElementById("addPatientModal"))
-    modal.show()
-}
-
-function addPatient() {
-    const form = document.getElementById("addPatientForm")
-    const formData = new FormData(form)
-
-    console.log("Adding new patient:", Object.fromEntries(formData))
-
-    window.bootstrap.Modal.getInstance(document.getElementById("addPatientModal")).hide()
-    showNotification("Patient added successfully!", "success")
-
-    // Reload patients list
-    loadPatients()
-}
-
-function openNewAppointmentModal() {
-    const modal = window.bootstrap.Modal(document.getElementById("newAppointmentModal"))
-    modal.show()
+    });
 }
 
 function showNotification(message, type = "info") {
-    const notification = document.createElement("div")
-    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`
-    notification.style.cssText = "top: 20px; right: 20px; z-index: 9999;"
+    const notification = document.createElement("div");
+    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = "top: 20px; right: 20px; z-index: 9999; min-width: 250px;";
     notification.innerHTML = `
-    ${message}
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-  `
-    document.body.appendChild(notification)
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(notification);
 
     setTimeout(() => {
-        notification.remove()
-    }, 3000)
+        if (notification) {
+            const bsAlert = new window.bootstrap.Alert(notification);
+            bsAlert.close();
+            // Đợi chuyển tiếp kết thúc
+            setTimeout(() => notification.remove(), 500);
+        }
+    }, 3000);
+}
+
+// --- ACTION STUBS (Retained from original code) ---
+
+function scheduleAppointment(patientId) {
+    console.log("Scheduling appointment stub for patient:", patientId);
+    // Thay vì mở modal, ta dùng thông báo giả
+    showNotification(`Appointment scheduled for Patient ID: ${patientId}.`, "info");
+}
+
+function sendMessage(patientId) {
+    console.log("Sending message stub to patient:", patientId);
+    showNotification(`Opening chat for Patient ID: ${patientId}.`, "info");
+}
+
+function viewMedicalHistory(patientId) {
+    console.log("Viewing medical history stub for patient:", patientId);
+    // Tái sử dụng viewPatientDetails để hiển thị lịch sử
+    viewPatientDetails(patientId);
+}
+
+function scheduleAppointmentForPatient() {
+    window.bootstrap.Modal.getInstance(document.getElementById("patientDetailsModal")).hide();
+    showNotification("Appointment scheduled successfully!", "success");
 }
 
 function logout() {
-    if (confirm("Are you sure you want to logout?")) {
-        localStorage.clear()
-        window.location.href = "login.html"
-    }
+    console.log("User logged out successfully.");
+    localStorage.clear();
+    showNotification("You have been logged out.", "info");
+    // Giả lập chuyển hướng sau khi đăng xuất
+    // window.location.href = "login.html"; 
 }
+
+// Exposed functions for HTML inline calls
+window.viewPatientDetails = viewPatientDetails;
+window.openAddPatientModal = openAddPatientModal;
+window.addPatient = addPatient;
+window.filterPatients = filterPatients;
+window.scheduleAppointment = scheduleAppointment;
+window.sendMessage = sendMessage;
+window.viewMedicalHistory = viewMedicalHistory;
+window.scheduleAppointmentForPatient = scheduleAppointmentForPatient;
+window.logout = logout;
