@@ -1,6 +1,7 @@
 ﻿using BusinessObjects.DataTransferObjects.AppointmentDTOs;
 using BusinessObjects.DataTransferObjects.DoctorDTOs;
 using BusinessObjects.Domain;
+using HealthCareSystemClient.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Drawing;
 using System.Net.Http;
@@ -261,7 +262,20 @@ namespace HealthCareSystemClient.Controllers
         public IActionResult Patients()
         {
             ViewData["ActiveMenu"] = "Patients";
-            return View();
+            var currentUserId = HttpContext.Session.GetInt32("UserId");
+            var fullName = HttpContext.Session.GetString("FullName");
+            var avatarUrl = HttpContext.Session.GetString("AvatarUrl");
+
+            // 2. Khởi tạo Model, đảm bảo không có thuộc tính nào là null
+            var model = new DoctorViewPatientViewModel
+            {
+                // Nếu UserId không tồn tại, gán giá trị 0 hoặc xử lý chuyển hướng
+                UserId = currentUserId ?? 0,
+                FullName = fullName ?? "Patient",
+                AvatarUrl = avatarUrl ?? "/images/default-avatar.png"
+            };
+            return View(model);
+
         }
         public async Task<IActionResult> Schedule(DateTime? week)
         {

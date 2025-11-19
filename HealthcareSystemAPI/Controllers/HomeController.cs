@@ -1,5 +1,6 @@
 ﻿using BusinessObjects.DataTransferObjects.DoctorDTOs;
 using BusinessObjects.DataTransferObjects.SpecialtyDTOs;
+using BusinessObjects.Domain;
 using DataAccessObjects.DAO;
 using Microsoft.AspNetCore.Mvc;
 using Services.Interface;
@@ -81,6 +82,15 @@ namespace HealthcareSystemAPI.Controllers
                 return NotFound("Doctor not found.");
 
             return Ok("Doctor profile updated successfully.");
+        }
+
+        [HttpGet("get-patient/{doctorUserId}")]
+        public async Task<IActionResult> GetPatientsByDoctorId(int doctorUserId)
+        {
+            var patientList = await _doctorService.GetPatientsByDoctorId(doctorUserId);
+            if (patientList == null)
+                return NotFound("Doctor not found.");
+            return Ok(patientList);
         }
     }
 }
