@@ -98,6 +98,7 @@ builder.Services.AddScoped<IAiConversationService, AiConversationService>();
 builder.Services.AddScoped<IAiMessageService, AiMessageService>();
 builder.Services.AddScoped<ISpecialtyService, SpecialtyService>();
 builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 
 // ------------------ DAO DI ----------------------
@@ -107,6 +108,7 @@ builder.Services.AddScoped<AppointmentDAO>();
 builder.Services.AddScoped<ConversationDAO>();
 builder.Services.AddScoped<MessageDAO>();
 builder.Services.AddScoped<UserDAO>();
+builder.Services.AddScoped<PaymentDAO>();
 
 // ------------------ SignalR ----------------------
 builder.Services.AddSignalR();

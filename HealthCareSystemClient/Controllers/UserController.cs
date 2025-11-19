@@ -1,4 +1,4 @@
-﻿using Azure;
+using Azure;
 using Azure.Core;
 using BusinessObjects.DataTransferObjects.AppointmentDTOs;
 using BusinessObjects.DataTransferObjects.AuthDTOs;
@@ -10,6 +10,9 @@ using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http.Json;
+using System.Text.Json;
+
+
 namespace HealthCareSystemClient.Controllers
 {
     public class UserController : Controller
@@ -100,13 +103,52 @@ namespace HealthCareSystemClient.Controllers
                     Description = s.Description
                 }).ToList();
 
+            // Load payment info for each appointment
+            var upcomingAppts = GetUpcomingAppointments(userAppointments);
+            var pastAppts = GetStatusAppointments(userAppointments, "Completed");
+            var cancelledAppts = GetStatusAppointments(userAppointments, "Cancelled");
+
+            // Load payments for upcoming appointments
+            var appointmentPayments = new Dictionary<int, BusinessObjects.DataTransferObjects.PaymentDTOs.PaymentResponse?>();
+            foreach (var appt in upcomingAppts)
+            {
+                try
+                {
+                    var paymentResponse = await client.GetAsync($"api/Payment/appointment/{appt.AppointmentId}");
+                    if (paymentResponse.IsSuccessStatusCode)
+                    {
+                        var payments = await paymentResponse.Content.ReadFromJsonAsync<List<BusinessObjects.DataTransferObjects.PaymentDTOs.PaymentResponse>>();
+                        var pendingPayment = payments?.FirstOrDefault(p => p.Status == "PENDING");
+                        appointmentPayments[appt.AppointmentId] = pendingPayment;
+                    }
+                }
+                catch
+                {
+                    // Ignore errors
+                }
+            }
 
             // Add appointment data to ViewBag for the appointments list
-            ViewBag.UpcomingAppointments = GetUpcomingAppointments(userAppointments);
-            ViewBag.PastAppointments = GetStatusAppointments(userAppointments, "Completed");
-            ViewBag.CancelledAppointments = GetStatusAppointments(userAppointments, "Cancelled");
+            ViewBag.UpcomingAppointments = upcomingAppts;
+            ViewBag.PastAppointments = pastAppts;
+            ViewBag.CancelledAppointments = cancelledAppts;
+            ViewBag.AppointmentPayments = appointmentPayments;
 
             return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult StorePendingBooking([FromBody] BookingDraftRequest request)
+        {
+            var currentUserId = HttpContext.Session.GetInt32("UserId");
+            if (currentUserId == null)
+            {
+                return Unauthorized();
+            }
+
+            HttpContext.Session.SetString("BookingDraft", JsonSerializer.Serialize(request));
+            return Ok();
         }
 
 
@@ -261,113 +303,6 @@ namespace HealthCareSystemClient.Controllers
         }
 
 
-
-        [HttpPost]
-        public async Task<IActionResult> BookAppointment(BookAppointmentViewModel model)
-        {
-            var currentUserId = HttpContext.Session.GetInt32("UserId");
-            if (currentUserId == null)
-            {
-                return RedirectToAction("Index", "Login");
-            }
-
-            if (!ModelState.IsValid)
-            {
-                var client = _httpClientFactory.CreateClient("healthcaresystemapi");
-                var responsespecialy = await client.GetAsync($"api/Appointment/specialty");
-                if (!responsespecialy.IsSuccessStatusCode) return View(new List<Specialty>());
-                var sespecialy = await responsespecialy.Content.ReadFromJsonAsync<List<Specialty>>();
-                // Reload data for form
-                model.Specialties = sespecialy
-                    .Select(s => new SpecialtyViewModel
-                    {
-                        SpecialtyId = s.SpecialtyId,
-                        Name = s.Name,
-                        Description = s.Description
-                    }).ToList();
-
-                TempData["Error"] = "Please fill in all required information";
-                return View("Appointments", model);
-            }
-
-            try
-            {
-                // Validate that current user exists as a patient
-                // Remove or comment out the following usages:
-                // var patient = await _patientService.GetByUserIdAsync(currentUserId.Value);
-                // If you need this feature, implement a synchronous version in the service and repository, otherwise remove the related usages.
-                //var patient = _patientService.GetByUserId(currentUserId.Value);
-                //if (patient == null)
-                //{
-                //    TempData["Error"] = "Patient record not found. Please contact support.";
-                //    return RedirectToAction("Appointments");
-                //}
-
-                //// Validate that selected doctor exists
-                //Doctor doctor = null;
-                //try
-                //{
-                //    doctor = _doctorService.GetDoctorById(model.DoctorUserId);
-                //}
-                //catch (Exception)
-                //{
-                //    // Doctor not found or error occurred
-                //}
-
-                //if (doctor == null)
-                //{
-                //    TempData["Error"] = "Selected doctor not found. Please choose another doctor.";
-                //    return RedirectToAction("Appointments");
-                //}
-
-                var appointmentDateTime = model.AppointmentDate.Add(model.AppointmentTime);
-
-                //// Check if time slot is still available
-                //var isBooked = await _appointmentService.IsTimeSlotBookedAsync(model.DoctorUserId, appointmentDateTime);
-                //if (isBooked)
-                //{
-                //    TempData["Error"] = "This time slot is already booked. Please choose another time.";
-                //    return RedirectToAction("Appointments");
-                //}
-
-                //var appointment = new Appointment
-                //{
-                //    PatientUserId = currentUserId.Value,
-                //    DoctorUserId = model.DoctorUserId,
-                //    AppointmentDateTime = appointmentDateTime,
-                //    Status = "Pending",
-                //    Notes = model.Notes,
-                //    CreatedAt = DateTime.Now,
-                //    UpdatedAt = DateTime.Now
-                //};
-                //await _appointmentService.AddAppointmentAsync(appointment);          -------------------------------------------------------------------------------------------
-
-
-                var appointmentrequest = new AppointmentAddRequest
-                {
-                    PatientUserId = currentUserId.Value,
-                    DoctorUserId  = model.DoctorUserId,
-                    AppointmentDateTime = appointmentDateTime,
-                    Notes = model.Notes
-                };
-                var client = _httpClientFactory.CreateClient("healthcaresystemapi");
-                var responsespecialy = await client.PostAsJsonAsync($"api/Appointment", appointmentrequest);
-                if (!responsespecialy.IsSuccessStatusCode)
-                {
-                    TempData["Error"] = "Failed to book appointment. Please try again.";
-                    return RedirectToAction("Appointments");
-                }
-                TempData["Success"] = "Appointment booked successfully!";
-                return RedirectToAction("Appointments");
-            }
-            catch (Exception ex)
-            {
-                // Log the inner exception for debugging
-                var innerMessage = ex.InnerException?.Message ?? ex.Message;
-                TempData["Error"] = "An error occurred while booking the appointment: " + innerMessage;
-                return RedirectToAction("Appointments");
-            }
-        }
 
         // Appointment Management Actions
 

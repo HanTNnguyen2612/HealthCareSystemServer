@@ -111,6 +111,10 @@
                                         </div>
                                         <div class="appointment-actions">
                                             <button class="btn btn-sm btn-outline-primary" onclick="showAppointmentDetails(@appointment.AppointmentId)">Details</button>
+                                            @{
+                                                var payments = ViewBag.AppointmentPayments as Dictionary<int, BusinessObjects.DataTransferObjects.PaymentDTOs.PaymentResponse?>;
+                                                var payment = payments != null && payments.ContainsKey(appointment.AppointmentId) ? payments[appointment.AppointmentId] : null;
+                                            }
                                             <button class="btn btn-sm btn-outline-warning" onclick="showRescheduleModal(@appointment.AppointmentId)">Reschedule</button>
                                             <button class="btn btn-sm btn-outline-danger" onclick="cancelAppointment(@appointment.AppointmentId)">Cancel</button>
                                         </div>
@@ -251,8 +255,8 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                @using (Html.BeginForm("BookAppointment", "User", FormMethod.Post, new { id = "bookAppointmentForm" }))
-                {
+                <form id="bookAppointmentForm" autocomplete="off">
+                    @Html.AntiForgeryToken()
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="SpecialtyId" class="form-label">Specialty</label>
@@ -304,18 +308,23 @@
                                         new { @class = "form-control", id = "appointmentType", required = "required" })
                     @Html.ValidationMessageFor(m => m.AppointmentType, "", new { @class = "text-danger" })
                 </div>
-                                }
+                </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" form="bookAppointmentForm" class="btn btn-primary">Book Appointment</button>
+                <button type="button" class="btn btn-primary" onclick="startPrepayment()">Pay &amp; Book</button>
             </div>
         </div>
     </div>
 </div>
 
+<form method="post" action="/Payment/CreatePrepayment" id="startPaymentForm" class="d-none">
+    @Html.AntiForgeryToken()
+</form>
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        restoreBookingForm();
         const specialtySelect = document.getElementById('specialty');
         const doctorSelect = document.getElementById('doctor');
         const dateInput = document.getElementById('appointmentDate');
@@ -403,7 +412,108 @@
             bookAppointmentModal.show();
         }
     });
+    function startPrepayment() {
+        const form = document.getElementById('bookAppointmentForm');
+        if (!form) return;
+
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        const formData = new FormData(form);
+        const bookingData = {};
+        formData.forEach((value, key) => {
+            if (key === "__RequestVerificationToken") return;
+            bookingData[key] = value;
+        });
+
+        sessionStorage.setItem('pending-booking-data', JSON.stringify(bookingData));
+
+        const tokenField = document.querySelector('#bookAppointmentForm input[name="__RequestVerificationToken"]');
+        const token = tokenField ? tokenField.value : '';
+
+        fetch('/User/StorePendingBooking', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': token
+            },
+            body: JSON.stringify(bookingData)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to store booking info');
+            }
+            document.getElementById('startPaymentForm').submit();
+        })
+        .catch(error => {
+            console.error(error);
+            alert('Failed to start payment. Please try again.');
+        });
+    }
+
+    function restoreBookingForm() {
+        const storedData = sessionStorage.getItem('pending-booking-data');
+        if (!storedData) return;
+
+        try {
+            const data = JSON.parse(storedData);
+            const form = document.getElementById('bookAppointmentForm');
+            if (!form) return;
+
+            Object.keys(data).forEach(key => {
+                const field = form.querySelector(`[name="${key}"]`);
+                if (field) {
+                    field.value = data[key];
+                }
+            });
+
+            const specialtySelect = document.getElementById('specialty');
+            if (specialtySelect && data.SpecialtyId) {
+                specialtySelect.value = data.SpecialtyId;
+                specialtySelect.dispatchEvent(new Event('change'));
+            }
+
+            const dateInput = document.getElementById('appointmentDate');
+            if (dateInput && data.AppointmentDate) {
+                dateInput.value = data.AppointmentDate;
+                dateInput.dispatchEvent(new Event('change'));
+            }
+
+            const doctorSelect = document.getElementById('doctor');
+            if (doctorSelect && data.DoctorUserId) {
+                const doctorInterval = setInterval(() => {
+                    const optionExists = Array.from(doctorSelect.options).some(opt => opt.value === data.DoctorUserId);
+                    if (optionExists) {
+                        doctorSelect.value = data.DoctorUserId;
+                        clearInterval(doctorInterval);
+                    }
+                }, 200);
+            }
+
+            const timeSelect = document.getElementById('appointmentTime');
+            if (timeSelect && data.AppointmentTime) {
+                const timeInterval = setInterval(() => {
+                    const optionExists = Array.from(timeSelect.options).some(opt => opt.value === data.AppointmentTime);
+                    if (optionExists) {
+                        timeSelect.value = data.AppointmentTime;
+                        clearInterval(timeInterval);
+                    }
+                }, 200);
+            }
+        } catch {
+            // Ignore parse errors
+        }
+    }
 </script>
+
+@if (TempData["Success"] != null)
+{
+    <script>
+        sessionStorage.removeItem('pending-booking-data');
+    </script>
+}
 
 <style>
     .appointment-card {
@@ -696,6 +806,7 @@
     function submitRescheduleForm() {
         document.getElementById('rescheduleForm').submit();
     }
+
 </script>
 
 <!-- Appointment Details Modal -->
